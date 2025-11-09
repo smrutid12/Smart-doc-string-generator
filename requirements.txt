@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+openai
+python-dotenv
+pydantic
+black              # optional, for formatting
+pytest             # optional, for tests
