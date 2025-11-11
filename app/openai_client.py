@@ -1,52 +1,64 @@
-# wrapper around OpenAI calls
 import os
 import json
-from typing import Dict
-import openai
+import re
+from groq import AsyncGroq
 from dotenv import load_dotenv
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai.api_key = OPENAI_API_KEY
+client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
 
-async def generate_docstring(function_name: str, function_code: str, max_tokens: int = 256) -> Dict:
-    """
-    Call OpenAI to generate a docstring for a single function.
-    Returns parsed JSON with keys: function_name and docstring.
-    """
-    # careful: keep prompt concise and deterministic
+
+def clean_json_string(json_str: str) -> str:
+    """Clean and normalize the model’s JSON-like output."""
+    # Remove Python triple quotes and replace with valid JSON strings
+    json_str = re.sub(r'"""(.*?)"""', lambda m: json.dumps(m.group(1)), json_str, flags=re.DOTALL)
+    json_str = re.sub(r"'''(.*?)'''", lambda m: json.dumps(m.group(1)), json_str, flags=re.DOTALL)
+    # Replace single quotes with double quotes for valid JSON
+    json_str = json_str.replace("'", '"')
+    # Trim whitespace and trailing commas
+    json_str = re.sub(r",\s*}", "}", json_str)
+    json_str = re.sub(r",\s*]", "]", json_str)
+    return json_str
+
+
+async def generate_docstring(function_name: str, function_code: str, max_tokens: int = 256):
     prompt = f"""
 You are an expert Python developer and documentation assistant.
-Given the following Python function, generate a clean PEP-257/Python-style docstring that explains:
-- the function's purpose in one sentence
-- descriptions for each parameter (name and role)
-- the return value and its type
-If there are exceptions raised, mention them.
+Given the following Python function, generate a full **PEP-257 compliant docstring** that includes
+a short description, Args, Returns, and Examples if applicable.
 
-Return strictly as JSON with keys:
-{{"function_name": "<function_name>", "docstring": "<docstring_text>"}}
+Return your answer STRICTLY as valid JSON (no markdown, no ``` blocks, no explanation, no Python code outside JSON):
+{{
+  "function_name": "{function_name}",
+  "docstring": "Full PEP-257 docstring text here"
+}}
 
-Function:
+Function code:
 {function_code}
-"""
-    # For asyncio compatibility we use the sync client in a thread — openai python libs are sync.
-    # If using OpenAI's async client, adjust accordingly.
-    resp = openai.Completion.create(
-        engine="gpt-4o-mini",  # replace with appropriate model
-        prompt=prompt,
-        max_tokens=max_tokens,
+""".strip()
+
+    response = await client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=[
+            {"role": "system", "content": "You are a precise JSON-only Python docstring generator."},
+            {"role": "user", "content": prompt},
+        ],
         temperature=0.0,
-        stop=None
+        max_tokens=max_tokens,
     )
-    text = resp.choices[0].text.strip()
-    # try to load JSON from the response
+
+    text = response.choices[0].message.content.strip()
+    print("\n=== RAW MODEL OUTPUT ===\n", text, "\n========================\n")
+
+    # Extract JSON section only
+    match = re.search(r"\{.*\}", text, re.S)
+    if not match:
+        raise ValueError("No JSON found in model output:\n" + text[:300])
+    json_str = clean_json_string(match.group(0))
+
     try:
-        parsed = json.loads(text)
-    except Exception:
-        # fallback: try to extract JSON substring
-        import re
-        m = re.search(r"\{.*\}", text, re.S)
-        if not m:
-            raise ValueError("Could not parse model response as JSON: " + text[:200])
-        parsed = json.loads(m.group(0))
+        parsed = json.loads(json_str)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON after cleaning: {e}\nOutput:\n{json_str[:300]}")
+
     return parsed
