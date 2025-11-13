@@ -1,7 +1,8 @@
 fastapi
 uvicorn[standard]
-openai
+groq
 python-dotenv
 pydantic
 black              # optional, for formatting
 pytest             # optional, for tests
+astor

@@ -1,4 +1,4 @@
-import UploadFile from "./UploadFile/page";
+import UploadFile from "./components/page";
 
 export default function Home() {
   return (

@@ -1,5 +1,5 @@
 # FastAPI app + endpoints
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, Depends
 from app.schemas import GenerateRequest, GenerateResponse, FunctionDoc
 from app.docgen import extract_functions_and_classes, get_node_source_segment, insert_docstrings_into_source
 from app.openai_client import generate_docstring
@@ -8,13 +8,18 @@ import asyncio
 app = FastAPI(title="AI Docstring Generator")
 
 @app.post("/generate", response_model=GenerateResponse)
-async def generate_docs(req: GenerateRequest):
-    if req.language.lower() != "python":
+async def generate_docs(
+    code: str = Form(...),
+    language: str = Form('Python'),
+    format: str = Form(...), 
+    file: UploadFile = File(...)
+):
+    if language.lower() != "python":
         raise HTTPException(status_code=400, detail="Currently only python is supported")
 
-    source = req.code
+    source = code
     try:
-        infos = extract_functions_and_classes(source)
+        infos = extract_functions_and_classes(language, source)
     except SyntaxError as e:
         raise HTTPException(status_code=400, detail=f"Syntax error in source: {e}")
 

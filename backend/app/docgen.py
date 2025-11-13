@@ -1,35 +1,27 @@
 # logic: extract funcs/classes, insert docstrings
 import ast
-from typing import List, Tuple, Optional
-import astor  # optional helper to convert node back to source (pip install astor)
+from typing import List, Tuple
+from app.utils import FunctionInfo, extract_c_plus_plus_functions, extract_java_functions, extract_js_functions, extract_python_functions, extract_ts_functions
 
-class FunctionInfo:
-    def __init__(self, name, start, end, node, existing_docstring):
-        self.name = name
-        self.start = start
-        self.end = end
-        self.node = node
-        self.existing_docstring = existing_docstring
-        self.generated_docstring = None
 
-def extract_functions_and_classes(source: str) -> List[FunctionInfo]:
+def extract_functions_and_classes(language:str, source: str) -> List[FunctionInfo]:
     """
     Parse source and return list of functions and classes with lineno ranges and existing docstrings.
     """
-    tree = ast.parse(source)
     res: List[FunctionInfo] = []
-
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            # ast nodes have lineno (start) and end_lineno (Py3.8+ provides end_lineno)
-            start = getattr(node, "lineno", None)
-            end = getattr(node, "end_lineno", None)
-            name = node.name
-            existing_doc = ast.get_docstring(node)
-            res.append(FunctionInfo(name, start, end, node, existing_doc))
-    # sort by start line (ascending)
-    res.sort(key=lambda x: (x.start if x.start else 0))
-    return res
+    
+    if language.lower() == "python":
+        return extract_python_functions(source, res)
+    elif language.lower() == "javascript":
+        return extract_js_functions(source)
+    elif language.lower() == "typescript":
+        return extract_ts_functions(source)
+    elif language.lower() == "java":
+        return extract_java_functions(source)
+    elif language.lower() in ["c++", "cpp"]:
+        return extract_c_plus_plus_functions(source)
+    else:
+        raise ValueError(f"Unsupported language: {language}")
 
 def get_node_source_segment(source: str, node: ast.AST) -> str:
     """

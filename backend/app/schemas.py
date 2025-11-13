@@ -1,10 +1,13 @@
 # pydantic request/response models
 from pydantic import BaseModel
+from fastapi import UploadFile
 from typing import Optional, List, Dict
 
 class GenerateRequest(BaseModel):
     code: str
     language: Optional[str] = "python"   # support fallback if later extend
+    format: str
+
 
 class FunctionDoc(BaseModel):
     name: str
