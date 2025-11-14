@@ -21,21 +21,21 @@ def clean_json_string(json_str: str) -> str:
     return json_str
 
 
-async def generate_docstring(function_name: str, function_code: str, max_tokens: int = 256):
+async def generate_docstring(function_language:str, function_name: str, function_code: str, function_format:str, max_tokens: int = 256):
     prompt = f"""
-You are an expert Python developer and documentation assistant.
-Given the following Python function, generate a full **PEP-257 compliant docstring** that includes
-a short description, Args, Returns, and Examples if applicable.
+        You are an expert {function_language} developer and documentation assistant.
+        Given the following {function_language} function, generate a full **PEP-257 compliant docstring** that includes
+        a short description, Args, Returns, and Examples if applicable.
 
-Return your answer STRICTLY as valid JSON (no markdown, no ``` blocks, no explanation, no Python code outside JSON):
-{{
-  "function_name": "{function_name}",
-  "docstring": "Full PEP-257 docstring text here"
-}}
+        Return your answer STRICTLY as valid JSON (no markdown, no ``` blocks, no explanation, no {function_language} code outside JSON):
+        {{
+        "function_name": "{function_name}",
+        "docstring": "Full {function_format} docstring text here".
+        }}
 
-Function code:
-{function_code}
-""".strip()
+        Function code:
+        {function_code}
+    """.strip()
 
     response = await client.chat.completions.create(
         model="llama-3.1-8b-instant",
