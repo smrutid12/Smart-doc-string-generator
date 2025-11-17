@@ -1,13 +1,22 @@
 "use client";
 
 import { useState, ChangeEvent, FormEvent } from "react";
+import { generateDocstring } from "../services/docstringService";
 
-type LanguageOption = "Python" | "JavaScript" | "TypeScript" | "Java" | "C++";
+type LanguageOption =
+  | "Python"
+  | "JavaScript"
+  | "TypeScript"
+  | "Java"
+  | "C++"
+  | "C";
+
 const languageOptions: LanguageOption[] = [
   "Python",
   "JavaScript",
   "TypeScript",
   "Java",
+  "C",
   "C++",
 ];
 
@@ -16,11 +25,12 @@ const formatOptions: DocStringFormat[] = ["Google", "NumPy", "PEP-257"];
 
 export default function UploadFile() {
   const [language, setLanguage] = useState<LanguageOption>("Python");
-  const [prompt, setPrompt] = useState("");
+  const [code, setCode] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [format, setFormat] = useState<DocStringFormat>("Google");
   const [inputMode, setInputMode] = useState<"code" | "file">("code");
   const [loading, setLoading] = useState(false);
+  const [resultCode, setResultCode] = useState<string>("");
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -31,7 +41,7 @@ export default function UploadFile() {
   const handleModeChange = (mode: "code" | "file") => {
     setInputMode(mode);
     if (mode === "code") setFile(null);
-    if (mode === "file") setPrompt("");
+    if (mode === "file") setCode("");
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -40,7 +50,7 @@ export default function UploadFile() {
       alert("Please upload a file!");
       return;
     }
-    if (inputMode === "code" && !prompt.trim()) {
+    if (inputMode === "code" && !code.trim()) {
       alert("Please enter some code!");
       return;
     }
@@ -52,13 +62,43 @@ export default function UploadFile() {
     formData.append("format", format);
     formData.append("mode", inputMode);
     if (inputMode === "file" && file) formData.append("file", file);
-    if (inputMode === "code") formData.append("prompt", prompt);
+    if (inputMode === "code") formData.append("code", code);
 
-    // Simulate backend call
-    setTimeout(() => {
-      alert("Submitted! (Connect to backend)");
+    try {
+      const result = await generateDocstring(formData);
+      console.log("Backend Response:", result);
+      setResultCode(result.modified_code);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Something went wrong");
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!resultCode) return;
+
+    const extMap: Record<LanguageOption, string> = {
+      Python: "py",
+      JavaScript: "js",
+      TypeScript: "ts",
+      Java: "java",
+      C: "c",
+      "C++": "cpp",
+    };
+
+    const ext = extMap[language] || "txt";
+
+    const blob = new Blob([resultCode], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `docstring_output.${ext}`;
+    link.click();
+
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -155,8 +195,8 @@ export default function UploadFile() {
               Code Block
             </label>
             <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
               placeholder="Write or paste your code here"
               className="mt-2 block w-full rounded-lg bg-[#1e1e1e] px-3 py-2 text-sm text-gray-100 font-mono placeholder-gray-500 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
               rows={10}
@@ -172,7 +212,7 @@ export default function UploadFile() {
                     "\t" +
                     target.value.substring(end);
                   e.currentTarget.value = newValue;
-                  setPrompt(newValue);
+                  setCode(newValue);
                   requestAnimationFrame(() => {
                     target.selectionStart = target.selectionEnd = start + 1;
                   });
@@ -235,6 +275,39 @@ export default function UploadFile() {
           </button>
         </div>
       </form>
+      {/* Output Section */}
+      {resultCode && (
+        <div className="mt-10 bg-gray-900 border border-gray-800 rounded-xl p-6">
+          <h3 className="text-xl font-semibold text-white mb-4">
+            Generated Code with Docstrings
+          </h3>
+
+          {/* Code Editor */}
+          <textarea
+            value={resultCode}
+            onChange={(e) => setResultCode(e.target.value)}
+            className="w-full h-80 bg-[#1e1e1e] text-gray-100 font-mono text-sm p-4 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+            spellCheck={false}
+          />
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 mt-4">
+            <button
+              className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700"
+              onClick={handleDownload}
+            >
+              Download File
+            </button>
+
+            <button
+              className="px-4 py-2 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600"
+              onClick={() => navigator.clipboard.writeText(resultCode)}
+            >
+              Copy to Clipboard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

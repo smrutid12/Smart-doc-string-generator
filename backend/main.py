@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from enum import Enum
 
 from app.schemas import GenerateResponse, FunctionDoc
 from app.docgen import (
@@ -17,13 +18,20 @@ logger.setLevel(logging.INFO)
 app = FastAPI(title="AI Docstring Generator")
 
 
+class FormatOptions(str, Enum):
+    google = "Google"
+    numpy = "NumPy"
+    pep257 = "PEP-257"
+
+
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_docs(
-    code: str = Form(""),
+    code: str = Form(None),
     language: str = Form("Python"),
-    format: str = Form(...),
+    format: FormatOptions = Form(...),
     file: UploadFile = File(None)
 ):
+    print(code, language, format, file, 'qqqqqqqqqqqqqqqqqqqqqqqqq')
     logger.info("REQUEST RECEIVED → /generate")
     logger.info(f"Language: {language}, Format: {format}, File uploaded: {bool(file)}")
 
