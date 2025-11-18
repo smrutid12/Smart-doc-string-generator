@@ -8,10 +8,9 @@ def extract_functions_and_classes(language:str, source: str) -> List[FunctionInf
     """
     Parse source and return list of functions and classes with lineno ranges and existing docstrings.
     """
-    res: List[FunctionInfo] = []
-    
+
     if language.lower() == "python":
-        return extract_python_functions(source, res)
+        return extract_python_functions(source)
     elif language.lower() == "javascript":
         return extract_js_functions(source)
     elif language.lower() == "typescript":

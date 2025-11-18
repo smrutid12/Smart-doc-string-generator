@@ -1,6 +1,8 @@
 import asyncio
 import logging
+import os
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 from enum import Enum
 
 from app.schemas import GenerateResponse, FunctionDoc
@@ -15,9 +17,29 @@ from app.utils import extract_code_from_file
 logger = logging.getLogger("doc_generator")
 logger.setLevel(logging.INFO)
 
+
+# APP set up
 app = FastAPI(title="AI Docstring Generator")
 
+ENV = os.getenv('ENV', 'dev')
 
+if ENV == 'production':
+    frontend_url = os.getenv('FRONTEND_URL')
+    origins = [frontend_url]
+else:
+    origins = ['http://localhost:4000', '*']  # dev mode
+
+# CORS setup
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# API
 class FormatOptions(str, Enum):
     google = "Google"
     numpy = "NumPy"

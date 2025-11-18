@@ -11,7 +11,7 @@ export async function generateDocstring(formData: FormData) {
       const errorText = await response.text();
       throw new Error(errorText || 'Failed to generate docstring');
     }
-    console.log(response.json())
+    console.log(response,'Response')
 
     return await response.json();
   } catch (error) {

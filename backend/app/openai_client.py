@@ -4,6 +4,8 @@ import re
 from groq import AsyncGroq
 from dotenv import load_dotenv
 
+from app.utils import indent_docstring
+
 load_dotenv()
 client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
 
@@ -60,5 +62,11 @@ async def generate_docstring(function_language:str, function_name: str, function
         parsed = json.loads(json_str)
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON after cleaning: {e}\nOutput:\n{json_str[:300]}")
+    
+    # Detect function indentation
+    indent_match = re.search(r"\n(\s+)\w", function_code)
+    indent = indent_match.group(1) if indent_match else "    "  # default 4 spaces
 
+    parsed["docstring"] = indent_docstring(parsed["docstring"], indent)
+    
     return parsed

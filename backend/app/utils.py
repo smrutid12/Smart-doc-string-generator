@@ -5,7 +5,7 @@ from fastapi import UploadFile
 
 # JS/TS
 import esprima
-from py_sucrase import transform
+# from py_sucrase import transform
 
 # Java
 import javalang
@@ -66,9 +66,10 @@ def extract_js_functions(source: str) -> List[FunctionInfo]:
 
 
 def extract_ts_functions(source: str) -> List[FunctionInfo]:
-    # Convert TypeScript to JS using Sucrase
-    js_code = transform(source, transforms=["typescript"])["code"]
-    return _extract_es_functions(js_code)
+    # # Convert TypeScript to JS using Sucrase
+    js_code = ''
+    # js_code = transform(source, transforms=["typescript"])["code"]
+    return _extract_es_functions(source)
 
 
 def _extract_es_functions(source: str) -> List[FunctionInfo]:
@@ -138,3 +139,18 @@ def extract_functions_and_classes(language: str, source: str) -> List[FunctionIn
         return extract_cpp_functions(source)
     else:
         raise ValueError(f"Unsupported language: {language}")
+
+
+def indent_docstring(docstring: str, indent: str) -> str:
+    """Indent all lines of the docstring according to the function indentation."""
+    lines = docstring.split("\n")
+    if not lines:
+        return docstring
+    
+    # First line stays right after the triple quotes
+    formatted = [lines[0]]
+    
+    # Remaining lines get indentation
+    for line in lines[1:]:
+        formatted.append(indent + line)
+    return "\n".join(formatted)
