@@ -11,3 +11,4 @@ esprima                    # JavaScript parser
 py_sucrase                 # TypeScript → JavaScript
 javalang                   # Java parser
 clang 
+esprima
