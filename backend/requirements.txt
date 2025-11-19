@@ -8,7 +8,6 @@ black              # optional, for formatting
 pytest             # optional, for tests
 astor
 esprima                    # JavaScript parser
-py_sucrase                 # TypeScript → JavaScript
 javalang                   # Java parser
 clang 
 esprima

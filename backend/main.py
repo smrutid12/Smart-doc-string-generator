@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from typing import List
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from enum import Enum
@@ -8,11 +9,11 @@ from enum import Enum
 from app.schemas import GenerateResponse, FunctionDoc
 from app.docgen import (
     extract_functions_and_classes,
-    get_node_source_segment,
+    get_source_for_fn,
     insert_docstrings_into_source
 )
 from app.openai_client import generate_docstring
-from app.utils import extract_code_from_file
+from app.utils import FunctionInfo, extract_code_from_file
 
 logger = logging.getLogger("doc_generator")
 logger.setLevel(logging.INFO)
@@ -53,7 +54,6 @@ async def generate_docs(
     format: FormatOptions = Form(...),
     file: UploadFile = File(None)
 ):
-    print(code, language, format, file, 'qqqqqqqqqqqqqqqqqqqqqqqqq')
     logger.info("REQUEST RECEIVED → /generate")
     logger.info(f"Language: {language}, Format: {format}, File uploaded: {bool(file)}")
 
@@ -77,7 +77,7 @@ async def generate_docs(
     # Extract functions/classes
     try:
         logger.info("Extracting functions/classes from source code")
-        infos = extract_functions_and_classes(language, source)
+        infos : List[FunctionInfo] = extract_functions_and_classes(language, source)
         logger.info(f"Extraction complete → Found {len(infos)} items")
     except SyntaxError as e:
         logger.error(f"Syntax error in source: {e}")
@@ -89,9 +89,9 @@ async def generate_docs(
     sem = asyncio.Semaphore(2)
     logger.info("Starting docstring generation process")
 
-    async def process(info):
+    async def process(info : FunctionInfo):
         nonlocal source
-        fn_src = get_node_source_segment(source, info.node)
+        fn_src = get_source_for_fn(language, source, info)
 
         logger.info(f"Generating docstring for function: {info.name}")
 

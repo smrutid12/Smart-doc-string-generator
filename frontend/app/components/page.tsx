@@ -106,7 +106,7 @@ export default function UploadFile() {
     <div className="max-w-3xl mx-auto mt-12 bg-gray-900 border border-gray-800 shadow-lg rounded-2xl p-8">
       <form onSubmit={handleSubmit} className="space-y-8">
         <h2 className="text-2xl font-semibold text-white">
-          {resultCode ? "Your Docstring is Ready!" : "Doc String Generator"}
+          {resultCode ? "Your Docstring is Ready!" : "Smart Doc String Generator ✨"}
         </h2>
 
         <p className="text-gray-400">

@@ -22,14 +22,39 @@ def extract_functions_and_classes(language:str, source: str) -> List[FunctionInf
     else:
         raise ValueError(f"Unsupported language: {language}")
 
-def get_node_source_segment(source: str, node: ast.AST) -> str:
+def get_source_for_fn(language: str, source: str, info: FunctionInfo) -> str:
     """
-    Return raw source text for the node (function/class). Requires Python 3.8+ end_lineno.
+    Return raw source text for the node (function/class) for eaqch language.
     """
-    lines = source.splitlines()
-    start = node.lineno - 1
-    end = node.end_lineno
-    return "\n".join(lines[start:end])
+    language = language.lower()
+
+    # ---------------- PYTHON ----------------
+    if language == "python":
+        return ast.get_source_segment(source, info.node) or ""
+
+    # ---------------- JS / TS ----------------
+    if language in ("javascript", "typescript"):
+        if info.start and info.end:
+            lines = source.splitlines()
+            return "\n".join(lines[info.start - 1 : info.end])
+        return ""
+
+    # ---------------- JAVA ----------------
+    if language == "java":
+        if info.start:
+            # Java has no `end`, so return only method signature line
+            return source.splitlines()[info.start - 1]
+        return ""
+
+    # ---------------- C++ ----------------
+    if language in ("c++", "cpp"):
+        if info.start:
+            return source.splitlines()[info.start - 1]
+        return ""
+
+    return ""
+
+
 
 def insert_docstrings_into_source(original_source: str, updates: List[Tuple[int, int, str]]) -> str:
     """
