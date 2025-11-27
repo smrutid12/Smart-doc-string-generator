@@ -23,7 +23,7 @@ docstrings using the **Grok (LLaMA-based)** model.
 
 -   **FastAPI** -- backend API\
 -   **Grok (LLaMA-based model)** -- docstring generation\
--   **Frontend** -- modern UI for code input and file upload
+-   **Frontend** -- modern nextJS UI for code input and file upload
 
 ## 📄 Output Example
 
