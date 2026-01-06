@@ -1,7 +1,18 @@
 # Smart Docstring Generator
 
+
 A lightweight, AI-powered tool that generates clean and consistent
 docstrings using the **Grok (LLaMA-based)** model.
+
+<p align="center">
+  <img
+    src="https://github.com/user-attachments/assets/36350cb9-d150-4d36-93be-7f27e87cdd90"
+    alt="smart-doc-string-generator-landing"
+    width="482"
+    height="627"
+    style="border-radius: 5px;"
+  />
+</p>
 
 ## 🚀 Features
 
