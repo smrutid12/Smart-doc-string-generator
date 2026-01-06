@@ -20,7 +20,25 @@ logger.setLevel(logging.INFO)
 
 
 # APP set up
-app = FastAPI(title="AI Docstring Generator")
+app = FastAPI(
+    title="AI Docstring Generator",
+    description="""
+Generate docstrings for code automatically using AI.
+
+Features:
+- Upload a file or paste code
+- Supports Google, NumPy, and PEP-257 formats
+- Returns modified source + extracted docs
+""",
+    version="1.0.0",
+    contact={
+        "name": "Smruti",
+        "email": "smrutid12@gmail.com",
+    },
+    docs_url="/swagger",
+    redoc_url="/docs-redoc",
+    openapi_url="/openapi"
+)
 
 ENV = os.getenv('ENV', 'dev')
 
@@ -46,11 +64,18 @@ class FormatOptions(str, Enum):
     numpy = "NumPy"
     pep257 = "PEP-257"
 
+class LanguageOptions(str, Enum):
+    python = "Python"
+    javascript = "Javascript"
+    typescript = "Typescript"
+    java = "Java"
+    c = "C"
+    cpp = "C++"
 
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_docs(
     code: str = Form(None),
-    language: str = Form("Python"),
+    language: LanguageOptions = Form("Python"),
     format: FormatOptions = Form(...),
     file: UploadFile = File(None)
 ):

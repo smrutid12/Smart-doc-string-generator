@@ -1,7 +1,7 @@
 # logic: extract funcs/classes, insert docstrings
 import ast
 from typing import List, Tuple
-from app.utils import FunctionInfo, extract_cpp_functions, extract_java_functions, extract_js_functions, extract_python_functions, extract_ts_functions
+from app.utils import FunctionInfo, extract_c_functions, extract_cpp_functions, extract_java_functions, extract_js_functions, extract_python_functions, extract_ts_functions
 
 
 def extract_functions_and_classes(language:str, source: str) -> List[FunctionInfo]:
@@ -17,8 +17,10 @@ def extract_functions_and_classes(language:str, source: str) -> List[FunctionInf
         return extract_ts_functions(source)
     elif language.lower() == "java":
         return extract_java_functions(source)
-    elif language.lower() in ["c++", "cpp"]:
+    elif language.lower() in ["c++", "cpp", "c"]:
         return extract_cpp_functions(source)
+    elif language.lower() in ["c"]:
+        return extract_c_functions(source)
     else:
         raise ValueError(f"Unsupported language: {language}")
 
@@ -47,7 +49,7 @@ def get_source_for_fn(language: str, source: str, info: FunctionInfo) -> str:
         return ""
 
     # ---------------- C++ ----------------
-    if language in ("c++", "cpp"):
+    if language in ("c++", "cpp", "c"):
         if info.start:
             return source.splitlines()[info.start - 1]
         return ""

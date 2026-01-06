@@ -121,6 +121,27 @@ def extract_cpp_functions(source: str) -> List[FunctionInfo]:
             res.append(FunctionInfo(node.spelling, start, None, node, None))
     return res
 
+# -------------------------------
+# C extractor
+# -------------------------------
+def extract_c_functions(source: str) -> List[FunctionInfo]:
+    res: List[FunctionInfo] = []
+    try:
+        index = Index.create()
+        tu = index.parse(
+            'temp.c',
+            args=['-std=c11'],
+            unsaved_files=[('temp.c', source)]
+        )
+    except Exception:
+        return res
+
+    for node in tu.cursor.get_children():
+        if node.kind.name == 'FUNCTION_DECL' and node.is_definition():
+            start = node.location.line
+            res.append(FunctionInfo(node.spelling, start, None, node, None))
+
+    return res
 
 # -------------------------------
 # Unified function
@@ -137,6 +158,8 @@ def extract_functions_and_classes(language: str, source: str) -> List[FunctionIn
         return extract_java_functions(source)
     elif language in ("c++", "cpp"):
         return extract_cpp_functions(source)
+    elif language in ("c"):
+        return extract_c_functions(source)
     else:
         raise ValueError(f"Unsupported language: {language}")
 
