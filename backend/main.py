@@ -48,6 +48,8 @@ if ENV == 'production':
 else:
     origins = ['http://localhost:4000', '*']  # dev mode
 
+logger.info(f"Env: {ENV}")
+
 # CORS setup
 app.add_middleware(
     CORSMiddleware,
