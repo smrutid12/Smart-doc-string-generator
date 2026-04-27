@@ -1,5 +1,7 @@
 # logic: extract funcs/classes, insert docstrings
 import ast
+import re
+import textwrap
 from typing import List, Tuple
 from app.utils import FunctionInfo, extract_c_functions, extract_cpp_functions, extract_java_functions, extract_js_functions, extract_python_functions, extract_ts_functions
 
@@ -17,9 +19,9 @@ def extract_functions_and_classes(language:str, source: str) -> List[FunctionInf
         return extract_ts_functions(source)
     elif language.lower() == "java":
         return extract_java_functions(source)
-    elif language.lower() in ["c++", "cpp", "c"]:
+    elif language.lower() in ["c++", "cpp"]:
         return extract_cpp_functions(source)
-    elif language.lower() in ["c"]:
+    elif language.lower() == "c":
         return extract_c_functions(source)
     else:
         raise ValueError(f"Unsupported language: {language}")
@@ -90,3 +92,14 @@ def insert_docstrings_into_source(original_source: str, updates: List[Tuple[int,
             # Insert doclines after def/class line
             lines[insert_line_idx:insert_line_idx] = doc_lines
     return "\n".join(lines)
+
+
+def normalize_python_source(source: str) -> str:
+    try:
+        ast.parse(source)
+        return source
+    except SyntaxError:
+        source = re.sub(r':\s+', ':\n    ', source)
+        source = textwrap.dedent(source)
+        ast.parse(source)  # re-validate
+        return source

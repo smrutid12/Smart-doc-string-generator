@@ -1,5 +1,7 @@
 # helper functions (chunking, safety, function extraction)
 import ast
+import re
+import textwrap
 from typing import List, Optional
 from fastapi import UploadFile
 
@@ -46,16 +48,24 @@ class FunctionInfo:
 # -------------------------------
 def extract_python_functions(source: str) -> List[FunctionInfo]:
     res: List[FunctionInfo] = []
+
+    # 🔴 Normalize BEFORE ast.parse
+    source = normalize_python_source(source)
+
     tree = ast.parse(source)
+
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             start = getattr(node, 'lineno', None)
             end = getattr(node, 'end_lineno', None)
             name = node.name
             existing_doc = ast.get_docstring(node)
+
             res.append(FunctionInfo(name, start, end, node, existing_doc))
+
     res.sort(key=lambda x: (x.start if x.start else 0))
     return res
+
 
 
 # -------------------------------
@@ -177,3 +187,14 @@ def indent_docstring(docstring: str, indent: str) -> str:
     for line in lines[1:]:
         formatted.append(indent + line)
     return "\n".join(formatted)
+
+
+def normalize_python_source(source: str) -> str:
+    try:
+        ast.parse(source)
+        return source
+    except SyntaxError:
+        source = re.sub(r':\s+', ':\n    ', source)
+        source = textwrap.dedent(source)
+        ast.parse(source)  # re-validate
+        return source

@@ -43,7 +43,7 @@ Features:
 ENV = os.getenv('ENV', 'dev')
 
 if ENV == 'production':
-    frontend_url = os.getenv('FRONTEND_URL')
+    frontend_url = os.getenv('FRONTEND_URL', "https://smart-doc-generator-frontend.vercel.app")
     origins = [frontend_url]
 else:
     origins = ['http://localhost:4000', '*']  # dev mode
@@ -52,7 +52,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

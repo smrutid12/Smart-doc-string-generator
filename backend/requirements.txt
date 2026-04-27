@@ -11,3 +11,4 @@ esprima                    # JavaScript parser
 javalang                   # Java parser
 clang 
 esprima
+email-validator
