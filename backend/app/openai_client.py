@@ -89,40 +89,35 @@ async def generate_docstring(
     function_name: str,
     function_code: str,
     function_format: str,
-    max_tokens: int = 256
+    max_tokens: int = 512,
 ):
     prompt = f"""
-    You are an expert {function_language} developer and documentation assistant.
+You are an expert {function_language} developer and documentation assistant.
 
-    Generate a **PEP-257 compliant docstring**.
+Generate a {function_format} docstring/comment for this function.
 
-    STRICT RULES:
-    - Return ONLY valid JSON
-    - Do NOT use triple quotes
-    - Escape newlines using \\n
-    - Do NOT add explanations or markdown
+STRICT RULES:
+- Return ONLY the docstring/comment text.
+- Do NOT return JSON.
+- Do NOT wrap the response in markdown.
+- Do NOT add explanations.
+- For JavaScript/TypeScript, return valid JSDoc.
+- For Java/C/C++, return valid block comment documentation.
+- For Python, return only the docstring content without triple quotes.
 
-    JSON format:
-    {{
-    "function_name": "{function_name}",
-    "docstring": "Full {function_format} docstring text"
-    }}
+Function name:
+{function_name}
 
-    Function:
-    {function_code}
-    """.strip()
+Function:
+{function_code}
+""".strip()
 
     response = await client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[
             {
                 "role": "system",
-                "content": (
-                    "You are a strict JSON generator. "
-                    "Always return valid JSON. "
-                    "Never use triple quotes. "
-                    "Escape all newlines as \\n."
-                ),
+                "content": "Return only the requested docstring/comment text. No JSON. No markdown.",
             },
             {"role": "user", "content": prompt},
         ],
@@ -130,37 +125,14 @@ async def generate_docstring(
         max_tokens=max_tokens,
     )
 
-    text = response.choices[0].message.content.strip()
+    docstring = response.choices[0].message.content.strip()
 
-    print("\n=== RAW MODEL OUTPUT ===\n", text, "\n========================\n")
+    print("\n=== RAW MODEL OUTPUT ===\n", docstring, "\n========================\n")
 
-    try:
-        # Extract JSON
-        json_str = extract_json(text)
-
-        # Clean JSON safely
-        json_str = clean_json_string(json_str)
-
-        # Parse safely (with fallback)
-        parsed = safe_parse_json(json_str, function_name)
-
-    except Exception as e:
-        logger.exception(f"Critical failure for {function_name}")
-
-        # 🚨 HARD FALLBACK (never break API)
-        parsed = {
-            "function_name": function_name,
-            "docstring": f"Add docstring for `{function_name}`.",
-            "fallback": True,
-            "error": str(e),
-        }
-
-    # -------------------------------
-    # INDENTATION FIX
-    # -------------------------------
     indent_match = re.search(r"\n(\s+)\w", function_code)
     indent = indent_match.group(1) if indent_match else "    "
 
-    parsed["docstring"] = indent_docstring(parsed.get("docstring", ""), indent)
-
-    return parsed
+    return {
+        "function_name": function_name,
+        "docstring": indent_docstring(docstring, indent),
+    }
