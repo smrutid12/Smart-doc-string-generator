@@ -66,6 +66,9 @@ class FormatOptions(str, Enum):
     numpy = "NumPy"
     pep257 = "PEP-257"
     jsdoc = "JSDoc"
+    tsdoc = "TSDoc"
+    javadoc = "JavaDoc"
+    doxygen = "Doxygen"
 
 
 class LanguageOptions(str, Enum):
