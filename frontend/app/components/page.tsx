@@ -12,6 +12,15 @@ type LanguageOption =
   | "C++"
   | "C";
 
+type DocStringFormat =
+  | "Google"
+  | "NumPy"
+  | "PEP-257"
+  | "JSDoc"
+  | "TSDoc"
+  | "Javadoc"
+  | "Doxygen";
+
 const languageOptions: LanguageOption[] = [
   "Python",
   "JavaScript",
@@ -21,14 +30,36 @@ const languageOptions: LanguageOption[] = [
   "C++",
 ];
 
-type DocStringFormat = "Google" | "NumPy" | "PEP-257";
-const formatOptions: DocStringFormat[] = ["Google", "NumPy", "PEP-257"];
+const formatOptionsByLanguage: Record<LanguageOption, DocStringFormat[]> = {
+  Python: ["Google", "NumPy", "PEP-257"],
+  JavaScript: ["JSDoc"],
+  TypeScript: ["TSDoc", "JSDoc"],
+  Java: ["Javadoc"],
+  C: ["Doxygen"],
+  "C++": ["Doxygen"],
+};
+
+function InfoTooltip({ text }: { text: string }) {
+  return (
+    <div className="relative group inline-block ml-2">
+      {/* i button */}
+      <div className="w-5 h-5 flex items-center justify-center text-xs rounded-full bg-gray-700 text-white cursor-pointer">
+        i
+      </div>
+
+      {/* tooltip */}
+      <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 p-3 text-xs text-gray-200 bg-gray-800 border border-gray-700 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition pointer-events-none z-50">
+        {text}
+      </div>
+    </div>
+  );
+}
 
 export default function UploadFile() {
   const [language, setLanguage] = useState<LanguageOption>("Python");
   const [code, setCode] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [format, setFormat] = useState<DocStringFormat>("Google");
+  const [format, setFormat] = useState<DocStringFormat>("NumPy");
   const [inputMode, setInputMode] = useState<"code" | "file">("code");
   const [loading, setLoading] = useState(false);
   const [resultCode, setResultCode] = useState<string>("");
@@ -106,7 +137,9 @@ export default function UploadFile() {
     <div className="max-w-3xl mx-auto mt-12 bg-gray-900 border border-gray-800 shadow-lg rounded-2xl p-8">
       <form onSubmit={handleSubmit} className="space-y-8">
         <h2 className="text-2xl font-semibold text-white">
-          {resultCode ? "Your Docstring is Ready!" : "Smart Doc String Generator ✨"}
+          {resultCode
+            ? "Your Docstring is Ready!"
+            : "Smart Doc String Generator ✨"}
         </h2>
 
         <p className="text-gray-400">
@@ -114,9 +147,6 @@ export default function UploadFile() {
             ? "Download, copy or edit your generated code below."
             : "Upload your file to add doc strings or paste code in the editor."}
         </p>
-        <a href="#" className="text-indigo-400 hover:text-indigo-300">
-          Know more
-        </a>
         {resultCode == "" && (
           <>
             {/* Language and Format */}
@@ -127,9 +157,13 @@ export default function UploadFile() {
                 </label>
                 <select
                   value={language}
-                  onChange={(e) =>
-                    setLanguage(e.target.value as LanguageOption)
-                  }
+                  onChange={(e) => {
+                    const selectedLanguage = e.target.value as LanguageOption;
+                    setLanguage(selectedLanguage);
+
+                    // reset format based on selected language
+                    setFormat(formatOptionsByLanguage[selectedLanguage][0]);
+                  }}
                   className="mt-2 block w-full rounded-md bg-gray-800 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
                 >
                   {languageOptions.map((lang) => (
@@ -153,7 +187,7 @@ export default function UploadFile() {
                   onChange={(e) => setFormat(e.target.value as DocStringFormat)}
                   className="mt-2 block w-full rounded-md bg-gray-800 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
                 >
-                  {formatOptions.map((f) => (
+                  {formatOptionsByLanguage[language].map((f) => (
                     <option
                       key={f}
                       value={f}
@@ -195,15 +229,26 @@ export default function UploadFile() {
             {/* Conditional Rendering */}
             {inputMode === "code" && (
               <div>
-                <label
-                  className={`block text-sm font-medium text-white ${
-                    inputMode === "code"
-                      ? "after:content-['*'] after:ml-0.5 after:text-red-500"
-                      : ""
-                  }`}
-                >
-                  Code Block
-                </label>
+                <div className="flex items-center">
+                  <label
+                    className={`block text-sm font-medium text-white ${
+                      inputMode === "code"
+                        ? "after:content-['*'] after:ml-0.5 after:text-red-500"
+                        : ""
+                    }`}
+                  >
+                    Code Block
+                  </label>
+
+                  <InfoTooltip
+                    text={`Paste your ${language} function or class here.
+                      Make sure the code is valid.
+                      Example:
+                        function add(a, b) {
+                          return a + b;
+                        }`}
+                  />
+                </div>
                 <textarea
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
@@ -234,15 +279,24 @@ export default function UploadFile() {
 
             {inputMode === "file" && (
               <div>
-                <label
-                  className={`block text-sm font-medium text-white ${
-                    inputMode === "file"
-                      ? "after:content-['*'] after:ml-0.5 after:text-red-500"
-                      : ""
-                  }`}
-                >
-                  File Upload
-                </label>
+                <div className="flex items-center">
+                  <label
+                    className={`block text-sm font-medium text-white ${
+                      inputMode === "file"
+                        ? "after:content-['*'] after:ml-0.5 after:text-red-500"
+                        : ""
+                    }`}
+                  >
+                    File Upload
+                  </label>
+
+                  <InfoTooltip
+                    text={`Upload a file containing your ${language} code.
+                    Supported formats:.py, .js, .ts, .java, .c, .cpp
+                    Max size: 10MB
+                    Make sure the file contains valid functions or classes.`}
+                  />
+                </div>
                 <div className="mt-2 flex justify-center rounded-lg border border-dashed border-white/25 px-6 py-10">
                   <div className="text-center">
                     <label
