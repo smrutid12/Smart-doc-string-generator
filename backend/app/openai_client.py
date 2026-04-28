@@ -150,7 +150,7 @@ async def generate_docstring(
         # 🚨 HARD FALLBACK (never break API)
         parsed = {
             "function_name": function_name,
-            "docstring": f"TODO: Add docstring for `{function_name}`.",
+            "docstring": f"Add docstring for `{function_name}`.",
             "fallback": True,
             "error": str(e),
         }
