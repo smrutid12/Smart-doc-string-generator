@@ -47,7 +47,7 @@ export default function DownloadResponse({
             </button>
 
             <button
-              className={`px-4 py-2 text-white font-medium rounded-md flex items-center gap-2 transition-colors ${
+              className={`w-44 px-4 py-2 text-white font-medium rounded-md flex items-center justify-center gap-2 transition-colors ${
                 copied
                   ? "bg-green-600 hover:bg-green-700"
                   : "bg-gray-700 hover:bg-gray-600"
