@@ -65,19 +65,22 @@ class FormatOptions(str, Enum):
     google = "Google"
     numpy = "NumPy"
     pep257 = "PEP-257"
+    jsdoc = "JSDoc"
+
 
 class LanguageOptions(str, Enum):
     python = "Python"
-    javascript = "Javascript"
-    typescript = "Typescript"
+    javascript = "JavaScript"
+    typescript = "TypeScript"
     java = "Java"
     c = "C"
     cpp = "C++"
 
+
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_docs(
     code: str = Form(None),
-    language: LanguageOptions = Form("Python"),
+    language: LanguageOptions = Form(LanguageOptions.python),
     format: FormatOptions = Form(...),
     file: UploadFile = File(None)
 ):
@@ -104,7 +107,7 @@ async def generate_docs(
     # Extract functions/classes
     try:
         logger.info("Extracting functions/classes from source code")
-        infos : List[FunctionInfo] = extract_functions_and_classes(language, source)
+        infos: List[FunctionInfo] = extract_functions_and_classes(language.value, source)
         logger.info(f"Extraction complete → Found {len(infos)} items")
     except SyntaxError as e:
         logger.error(f"Syntax error in source: {e}")
@@ -125,10 +128,10 @@ async def generate_docs(
         async with sem:
             try:
                 parsed = await generate_docstring(
-                    function_language=language,
+                    function_language=language.value,
                     function_name=info.name,
                     function_code=fn_src,
-                    function_format=format
+                    function_format=format.value
                 )
             except Exception as e:
                 logger.error(f"Docstring generation failed for {info.name}: {e}")
