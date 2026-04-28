@@ -1,3 +1,8 @@
+"use client";
+
+import { useState } from "react";
+import { Check } from "lucide-react";
+
 export default function DownloadResponse({
   resultCode,
   setResultCode,
@@ -7,6 +12,17 @@ export default function DownloadResponse({
   setResultCode: (value: string) => void;
   handleDownload: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    await navigator.clipboard.writeText(resultCode);
+    setCopied(true);
+
+    setTimeout(() => {
+      setCopied(false);
+    }, 5000);
+  }
+
   return (
     <>
       {resultCode && (
@@ -31,11 +47,23 @@ export default function DownloadResponse({
             </button>
 
             <button
-              className="px-4 py-2 bg-gray-700 text-white font-medium rounded-md hover:bg-gray-600"
-              onClick={() => navigator.clipboard.writeText(resultCode)}
+              className={`px-4 py-2 text-white font-medium rounded-md flex items-center gap-2 transition-colors ${
+                copied
+                  ? "bg-green-600 hover:bg-green-700"
+                  : "bg-gray-700 hover:bg-gray-600"
+              }`}
+              onClick={handleCopy}
             >
-              Copy to Clipboard
+              {copied ? (
+                <>
+                  <Check size={18} />
+                  Copied
+                </>
+              ) : (
+                "Copy to Clipboard"
+              )}
             </button>
+
             <button
               className="px-4 py-2 bg-red-600 text-white font-medium rounded-md hover:bg-red-700"
               onClick={() => setResultCode("")}
