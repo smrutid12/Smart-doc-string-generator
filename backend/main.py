@@ -80,6 +80,31 @@ class LanguageOptions(str, Enum):
     cpp = "C++"
 
 
+ALLOWED_FORMATS_BY_LANGUAGE = {
+    LanguageOptions.python: {
+        FormatOptions.google,
+        FormatOptions.numpy,
+        FormatOptions.pep257,
+    },
+    LanguageOptions.javascript: {
+        FormatOptions.jsdoc,
+    },
+    LanguageOptions.typescript: {
+        FormatOptions.tsdoc,
+        FormatOptions.jsdoc,
+    },
+    LanguageOptions.java: {
+        FormatOptions.javadoc,
+    },
+    LanguageOptions.c: {
+        FormatOptions.doxygen,
+    },
+    LanguageOptions.cpp: {
+        FormatOptions.doxygen,
+    },
+}
+
+
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_docs(
     code: str = Form(None),
@@ -89,6 +114,15 @@ async def generate_docs(
 ):
     logger.info("REQUEST RECEIVED → /generate")
     logger.info(f"Language: {language}, Format: {format}, File uploaded: {bool(file)}")
+    
+    allowed_formats = ALLOWED_FORMATS_BY_LANGUAGE.get(language, set())
+
+    if format not in allowed_formats:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{format.value} is not supported for {language.value}. "
+                f"Allowed formats: {', '.join(f.value for f in allowed_formats)}"
+        )
 
     # Validate input
     if not code and not file:

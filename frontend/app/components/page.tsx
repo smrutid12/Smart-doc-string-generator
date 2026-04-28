@@ -18,7 +18,7 @@ type DocStringFormat =
   | "PEP-257"
   | "JSDoc"
   | "TSDoc"
-  | "Javadoc"
+  | "JavaDoc"
   | "Doxygen";
 
 const languageOptions: LanguageOption[] = [
@@ -34,7 +34,7 @@ const formatOptionsByLanguage: Record<LanguageOption, DocStringFormat[]> = {
   Python: ["Google", "NumPy", "PEP-257"],
   JavaScript: ["JSDoc"],
   TypeScript: ["TSDoc", "JSDoc"],
-  Java: ["Javadoc"],
+  Java: ["JavaDoc"],
   C: ["Doxygen"],
   "C++": ["Doxygen"],
 };
@@ -59,7 +59,9 @@ export default function UploadFile() {
   const [language, setLanguage] = useState<LanguageOption>("Python");
   const [code, setCode] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [format, setFormat] = useState<DocStringFormat>("NumPy");
+  const [format, setFormat] = useState<DocStringFormat>(
+    formatOptionsByLanguage["Python"][0],
+  );
   const [inputMode, setInputMode] = useState<"code" | "file">("code");
   const [loading, setLoading] = useState(false);
   const [resultCode, setResultCode] = useState<string>("");

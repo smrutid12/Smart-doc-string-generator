@@ -101,7 +101,7 @@ STRICT RULES:
 - Do NOT return JSON.
 - Do NOT wrap the response in markdown.
 - Do NOT add explanations.
-- For JavaScript/TypeScript, return valid JSDoc.
+- For JavaScript/TypeScript, return valid JSDoc or TSDoc.
 - For Java/C/C++, return valid block comment documentation.
 - For Python, return only the docstring content without triple quotes.
 
