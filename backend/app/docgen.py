@@ -60,37 +60,76 @@ def get_source_for_fn(language: str, source: str, info: FunctionInfo) -> str:
 
 
 
-def insert_docstrings_into_source(original_source: str, updates: List[Tuple[int, int, str]]) -> str:
+def insert_docstrings_into_source(
+    original_source: str,
+    updates: List[Tuple[int, int, str]],
+    language: str = "Python",
+) -> str:
     """
-    updates: list of (start_lineno, end_lineno, generated_docstring_text)
-    We'll reconstruct file by inserting docstrings in the right place.
-    Each docstring text should already be a triple-quoted string without extra indentation; we'll indent as needed.
+    Insert generated documentation into source code.
+
+    Python:
+    - Inserts docstring inside function/class body.
+
+    JavaScript / TypeScript / Java / C / C++:
+    - Inserts block comment above function/method.
     """
+
     lines = original_source.splitlines()
-    # process updates in reverse order so line numbers remain valid
+    language = language.lower()
+
+    block_comment_languages = {
+        "javascript",
+        "typescript",
+        "java",
+        "c",
+        "c++",
+        "cpp",
+    }
+
     for start, end, doctext in sorted(updates, key=lambda x: x[0], reverse=True):
-        # find the first statement line after the def/class line that should contain docstring position
-        insert_line_idx = start  # 1-based lineno -> 0-based index
-        # compute indentation from the def line
+        if not doctext:
+            continue
+
         def_line = lines[start - 1]
-        indent = def_line[:len(def_line) - len(def_line.lstrip())] + "    "  # 4-space indent inside block
-        # build docstring lines
-        doc_lines = ['{}"""{}"""'.format(indent, doctext.strip().replace('"""','\\"\"\"'))]
-        # If there is already a docstring, replace it: find the node body first statement if it's a string
-        # For simplicity, we'll check line at start (next line) for triple quotes
-        next_idx = start  # 0-based index where first line of body likely starts
-        if next_idx < len(lines) and lines[next_idx].lstrip().startswith('"""'):
-            # replace existing docstring block; find its end
-            j = next_idx
-            while j < len(lines):
-                if lines[j].rstrip().endswith('"""') and j != next_idx:
-                    break
-                j += 1
-            # replace lines[next_idx:j+1] with doc_lines
-            lines[next_idx:j+1] = doc_lines
+        base_indent = def_line[: len(def_line) - len(def_line.lstrip())]
+
+        # JS / TS / Java / C / C++
+        if language in block_comment_languages:
+            doc_lines = [
+                base_indent + line.strip() if line.strip() else ""
+                for line in doctext.strip().splitlines()
+            ]
+
+            # Insert above function line
+            lines[start - 1 : start - 1] = doc_lines
+
+        # Python
         else:
-            # Insert doclines after def/class line
-            lines[insert_line_idx:insert_line_idx] = doc_lines
+            indent = base_indent + "    "
+            clean_doc = doctext.strip().replace('"""', '\\"""')
+
+            if clean_doc.startswith('"""') and clean_doc.endswith('"""'):
+                doc_lines = [
+                    indent + line.strip() if line.strip() else ""
+                    for line in clean_doc.splitlines()
+                ]
+            else:
+                doc_lines = [f'{indent}"""{clean_doc}"""']
+
+            next_idx = start
+
+            if next_idx < len(lines) and lines[next_idx].lstrip().startswith('"""'):
+                j = next_idx
+                while j < len(lines):
+                    if lines[j].rstrip().endswith('"""') and j != next_idx:
+                        break
+                    j += 1
+
+                lines[next_idx : j + 1] = doc_lines
+            else:
+                lines[start:start] = doc_lines
+
     return "\n".join(lines)
 
 

@@ -193,7 +193,7 @@ async def generate_docs(
         await process(info)
 
     logger.info("Injecting docstrings into source code")
-    modified = insert_docstrings_into_source(source, updates)
+    modified = insert_docstrings_into_source(source, updates, language.value)
     logger.info("Docstring insertion complete")
 
     logger.info("Returning final response to client")
