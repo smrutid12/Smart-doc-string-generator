@@ -26,38 +26,30 @@ def extract_functions_and_classes(language:str, source: str) -> List[FunctionInf
     else:
         raise ValueError(f"Unsupported language: {language}")
 
-def get_source_for_fn(language: str, source: str, info: FunctionInfo) -> str:
-    """
-    Return raw source text for the node (function/class) for eaqch language.
-    """
-    language = language.lower()
 
-    # ---------------- PYTHON ----------------
+def get_source_for_fn(language: str, source: str, info: FunctionInfo) -> str:
+    language = language.lower()
+    lines = source.splitlines()
+
     if language == "python":
         return ast.get_source_segment(source, info.node) or ""
 
-    # ---------------- JS / TS ----------------
     if language in ("javascript", "typescript"):
         if info.start and info.end:
-            lines = source.splitlines()
             return "\n".join(lines[info.start - 1 : info.end])
         return ""
 
-    # ---------------- JAVA ----------------
     if language == "java":
         if info.start:
-            # Java has no `end`, so return only method signature line
-            return source.splitlines()[info.start - 1]
+            return lines[info.start - 1]
         return ""
 
-    # ---------------- C++ ----------------
     if language in ("c++", "cpp", "c"):
         if info.start:
-            return source.splitlines()[info.start - 1]
+            return lines[info.start - 1]
         return ""
 
     return ""
-
 
 
 def insert_docstrings_into_source(

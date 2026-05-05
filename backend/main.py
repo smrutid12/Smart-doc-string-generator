@@ -179,8 +179,8 @@ async def generate_docs(
 
         docs_resp.append(FunctionDoc(
             name=info.name,
-            start_lineno=info.start,
-            end_lineno=info.end,
+            start_lineno=info.start or 1,
+            end_lineno=info.end or info.start or 1,
             existing_docstring=info.existing_docstring,
             generated_docstring=doctext
         ))
