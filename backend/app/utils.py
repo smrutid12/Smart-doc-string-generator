@@ -84,11 +84,37 @@ def extract_ts_functions(source: str) -> List[FunctionInfo]:
 
 
 def strip_typescript_types(source: str) -> str:
-    # Remove parameter types: price: number
-    source = re.sub(r":\s*[A-Za-z_$][\w$<>\[\]\|&,\s]*?(?=[,\)=])", "", source)
+    # Remove type aliases:
+    # type User = { id: number; name: string };
+    source = re.sub(
+        r"\btype\s+\w+\s*=\s*\{[\s\S]*?\};?",
+        "",
+        source,
+        flags=re.MULTILINE,
+    )
 
-    # Remove return types: ): number {
-    source = re.sub(r"\)\s*:\s*[A-Za-z_$][\w$<>\[\]\|&,\s]*?\s*\{", ") {", source)
+    # Remove interfaces:
+    # interface User { id: number; name: string }
+    source = re.sub(
+        r"\binterface\s+\w+\s*\{[\s\S]*?\}",
+        "",
+        source,
+        flags=re.MULTILINE,
+    )
+
+    # Remove parameter/property types: name: string, age: number
+    source = re.sub(
+        r":\s*[A-Za-z_$][\w$<>\[\]\|&,\s]*?(?=[,\)=;])",
+        "",
+        source,
+    )
+
+    # Remove return types: ): string {
+    source = re.sub(
+        r"\)\s*:\s*[A-Za-z_$][\w$<>\[\]\|&,\s]*?\s*\{",
+        ") {",
+        source,
+    )
 
     return source
 
@@ -99,7 +125,7 @@ def _extract_es_functions(source: str, is_typescript: bool = False) -> List[Func
     parse_source = strip_typescript_types(source) if is_typescript else source
 
     try:
-        tree = esprima.parseScript(parse_source, loc=True)
+        tree = esprima.parseModule(parse_source, loc=True)
     except Exception as e:
         logger.error(f"ES parsing failed: {e}")
         return res
