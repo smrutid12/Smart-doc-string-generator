@@ -15,6 +15,10 @@ import javalang
 # C/C++
 from clang.cindex import Index
 
+import logging
+
+logger = logging.getLogger("utils")
+logger.setLevel(logging.INFO)
 # -------------------------------
 # Async file reading
 # -------------------------------
@@ -72,29 +76,41 @@ def extract_python_functions(source: str) -> List[FunctionInfo]:
 # JavaScript / TypeScript extractor
 # -------------------------------
 def extract_js_functions(source: str) -> List[FunctionInfo]:
-    return _extract_es_functions(source)
+    return _extract_es_functions(source, is_typescript=False)
 
 
 def extract_ts_functions(source: str) -> List[FunctionInfo]:
-    # # Convert TypeScript to JS using Sucrase
-    js_code = ''
-    # js_code = transform(source, transforms=["typescript"])["code"]
-    return _extract_es_functions(source)
+    return _extract_es_functions(source, is_typescript=True)
 
 
-def _extract_es_functions(source: str) -> List[FunctionInfo]:
+def strip_typescript_types(source: str) -> str:
+    # Remove parameter types: price: number
+    source = re.sub(r":\s*[A-Za-z_$][\w$<>\[\]\|&,\s]*?(?=[,\)=])", "", source)
+
+    # Remove return types: ): number {
+    source = re.sub(r"\)\s*:\s*[A-Za-z_$][\w$<>\[\]\|&,\s]*?\s*\{", ") {", source)
+
+    return source
+
+
+def _extract_es_functions(source: str, is_typescript: bool = False) -> List[FunctionInfo]:
     res: List[FunctionInfo] = []
+
+    parse_source = strip_typescript_types(source) if is_typescript else source
+
     try:
-        tree = esprima.parseScript(source, loc=True)
-    except Exception:
+        tree = esprima.parseScript(parse_source, loc=True)
+    except Exception as e:
+        logger.error(f"ES parsing failed: {e}")
         return res
 
     for node in tree.body:
         if node.type in ("FunctionDeclaration", "ClassDeclaration"):
-            name = getattr(node.id, "name", "<anonymous>") if node.type == "FunctionDeclaration" else getattr(node.id, "name", "<anonymous>")
+            name = getattr(node.id, "name", "<anonymous>")
             start = node.loc.start.line
             end = node.loc.end.line
             res.append(FunctionInfo(name, start, end, node, None))
+
     return res
 
 
