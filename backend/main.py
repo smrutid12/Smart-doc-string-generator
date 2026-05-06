@@ -141,6 +141,8 @@ async def generate_docs(
 
     source = code
 
+    
+
     # Extract functions/classes
     try:
         logger.info("Extracting functions/classes from source code")

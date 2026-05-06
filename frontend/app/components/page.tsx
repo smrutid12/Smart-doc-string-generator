@@ -251,31 +251,74 @@ export default function UploadFile() {
                         }`}
                   />
                 </div>
-                <textarea
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  placeholder="Write or paste your code here"
-                  className="mt-2 block w-full rounded-lg bg-[#1e1e1e] px-3 py-2 text-sm text-gray-100 font-mono placeholder-gray-500 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
-                  rows={10}
-                  spellCheck={false}
-                  onKeyDown={(e) => {
-                    if (e.key === "Tab") {
-                      e.preventDefault();
-                      const target = e.target as HTMLTextAreaElement;
-                      const start = target.selectionStart;
-                      const end = target.selectionEnd;
-                      const newValue =
-                        target.value.substring(0, start) +
-                        "\t" +
-                        target.value.substring(end);
-                      e.currentTarget.value = newValue;
-                      setCode(newValue);
-                      requestAnimationFrame(() => {
-                        target.selectionStart = target.selectionEnd = start + 1;
-                      });
-                    }
-                  }}
-                />
+                <div className="mt-3 overflow-hidden rounded-xl border border-[#2d2d2d] bg-[#1e1e1e] shadow-2xl">
+                  {/* VS Code top bar */}
+                  <div className="flex items-center justify-between border-b border-[#2d2d2d] bg-[#252526] px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full bg-red-500"></span>
+                      <span className="h-3 w-3 rounded-full bg-yellow-400"></span>
+                      <span className="h-3 w-3 rounded-full bg-green-500"></span>
+                    </div>
+
+                    <div className="text-xs font-medium text-gray-400">
+                      {language === "Python" && "main.py"}
+                      {language === "JavaScript" && "main.js"}
+                      {language === "TypeScript" && "main.ts"}
+                      {language === "Java" && "Main.java"}
+                      {language === "C" && "main.c"}
+                      {language === "C++" && "main.cpp"}
+                    </div>
+
+                    <div className="text-xs text-gray-500">VS Code</div>
+                  </div>
+
+                  {/* Editor body */}
+                  <div className="flex max-h-[420px] min-h-[260px] overflow-hidden bg-[#1e1e1e]">
+                    {/* Line numbers */}
+                    <div className="select-none border-r border-[#2d2d2d] bg-[#1e1e1e] px-3 py-3 text-right font-mono text-sm leading-6 text-gray-500">
+                      {(code || "\n").split("\n").map((_, index) => (
+                        <div key={index}>{index + 1}</div>
+                      ))}
+                    </div>
+
+                    {/* Code textarea */}
+                    <textarea
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                      placeholder={`Paste your ${language} code here...`}
+                      className="block min-h-[260px] w-full resize-y overflow-auto whitespace-pre bg-[#1e1e1e] px-4 py-3 font-mono text-sm leading-6 text-gray-100 caret-indigo-400 placeholder:text-gray-600 focus:outline-none"
+                      rows={10}
+                      spellCheck={false}
+                      onKeyDown={(e) => {
+                        if (e.key === "Tab") {
+                          e.preventDefault();
+
+                          const target = e.target as HTMLTextAreaElement;
+                          const start = target.selectionStart;
+                          const end = target.selectionEnd;
+
+                          const newValue =
+                            target.value.substring(0, start) +
+                            "  " +
+                            target.value.substring(end);
+
+                          setCode(newValue);
+
+                          requestAnimationFrame(() => {
+                            target.selectionStart = target.selectionEnd =
+                              start + 2;
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Bottom status bar */}
+                  <div className="flex items-center justify-between border-t border-[#2d2d2d] bg-[#007acc] px-4 py-1 text-xs text-white">
+                    <span>{language}</span>
+                    <span>Lines: {code ? code.split("\n").length : 1}</span>
+                  </div>
+                </div>
               </div>
             )}
 
