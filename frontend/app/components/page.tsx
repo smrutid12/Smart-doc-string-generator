@@ -265,10 +265,6 @@ export default function UploadFile() {
           >
             {/* Fun hero / command panel */}
             <section className="mb-5 overflow-hidden rounded-2xl border border-[#2d2d2d] bg-[#181818] shadow-2xl">
-              <div className="border-b border-[#2d2d2d] bg-[#252526] px-4 py-2 text-xs text-gray-400">
-                command-center.tsx
-              </div>
-
               <div className="relative p-5 md:p-7">
                 <div className="absolute right-6 top-6 hidden rounded-full bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300 ring-1 ring-indigo-500/20 md:block">
                   ✨ Built for developers who care about maintainable code
