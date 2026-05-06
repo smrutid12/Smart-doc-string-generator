@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useState, ChangeEvent, FormEvent, useRef } from "react";
 import {
   Bot,
   Braces,
@@ -85,6 +85,7 @@ export default function UploadFile() {
   const [inputMode, setInputMode] = useState<"code" | "file">("code");
   const [loading, setLoading] = useState(false);
   const [resultCode, setResultCode] = useState<string>("");
+  const lineNumberRef = useRef<HTMLDivElement | null>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -166,7 +167,7 @@ export default function UploadFile() {
   const lineCount = code ? code.split("\n").length : 1;
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#0d1117] text-gray-100">
+    <div className="min-h-dvh bg-[#0d1117] text-gray-100">
       {/* Top VS Code title bar */}
       <header className="flex h-12 items-center border-b border-[#2d2d2d] bg-[#181818] px-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-200">
@@ -220,37 +221,36 @@ export default function UploadFile() {
               </div>
 
               <div className="ml-5 space-y-2 text-sm text-gray-400">
-                <div className="flex items-center gap-2 rounded-md bg-[#37373d] px-2 py-1 text-white">
-                  <Code2 size={14} className="text-yellow-300" />
+                {/* Main input file */}
+                <div
+                  className={`flex items-center gap-2 rounded-md px-2 py-1 transition ${
+                    !resultCode
+                      ? "bg-[#37373d] text-white"
+                      : "text-gray-400 hover:bg-[#2d2d30] hover:text-white"
+                  }`}
+                >
+                  <Code2
+                    size={14}
+                    className={
+                      !resultCode ? "text-yellow-300" : "text-gray-500"
+                    }
+                  />
                   {fileNameByLanguage[language]}
                 </div>
 
-                <div className="flex items-center gap-2 px-2 py-1">
-                  <Sparkles size={14} className="text-purple-300" />
+                {/* Generated output file */}
+                <div
+                  className={`flex items-center gap-2 rounded-md px-2 py-1 transition ${
+                    resultCode
+                      ? "bg-[#37373d] text-white"
+                      : "text-gray-500 hover:bg-[#2d2d30] hover:text-gray-300"
+                  }`}
+                >
+                  <Sparkles
+                    size={14}
+                    className={resultCode ? "text-purple-300" : "text-gray-600"}
+                  />
                   docstring_output
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-[#333] bg-[#181818] p-3">
-              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
-                Current Setup
-              </p>
-
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Language</span>
-                  <span className="text-[#89dceb]">{language}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Format</span>
-                  <span className="text-[#c792ea]">{format}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Mode</span>
-                  <span className="text-[#c3e88d]">
-                    {inputMode === "code" ? "Code" : "File"}
-                  </span>
                 </div>
               </div>
             </div>
@@ -259,7 +259,10 @@ export default function UploadFile() {
 
         {/* Main editor area */}
         <main className="flex-1 overflow-y-auto bg-[#1e1e1e]">
-          <form onSubmit={handleSubmit} className="mx-auto max-w-6xl p-4 md:p-6">
+          <form
+            onSubmit={handleSubmit}
+            className="mx-auto max-w-6xl p-4 md:p-6"
+          >
             {/* Fun hero / command panel */}
             <section className="mb-5 overflow-hidden rounded-2xl border border-[#2d2d2d] bg-[#181818] shadow-2xl">
               <div className="border-b border-[#2d2d2d] bg-[#252526] px-4 py-2 text-xs text-gray-400">
@@ -268,7 +271,7 @@ export default function UploadFile() {
 
               <div className="relative p-5 md:p-7">
                 <div className="absolute right-6 top-6 hidden rounded-full bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300 ring-1 ring-indigo-500/20 md:block">
-                  ✨ docs without the drama
+                  ✨ Built for developers who care about maintainable code
                 </div>
 
                 <div className="max-w-2xl">
@@ -286,7 +289,7 @@ export default function UploadFile() {
                   <p className="mt-3 max-w-xl text-sm leading-6 text-gray-400 md:text-base">
                     {resultCode
                       ? "Review your generated output, edit it if needed, then copy or download the final file."
-                      : "A VS Code-inspired workspace for generating Google, NumPy, JSDoc, TSDoc, JavaDoc, and Doxygen comments."}
+                      : "Turn raw code into clear, consistent, production-ready documentation — right from a developer-friendly workspace."}
                   </p>
                 </div>
               </div>
@@ -306,10 +309,12 @@ export default function UploadFile() {
                       <select
                         value={language}
                         onChange={(e) => {
-                          const selectedLanguage =
-                            e.target.value as LanguageOption;
+                          const selectedLanguage = e.target
+                            .value as LanguageOption;
                           setLanguage(selectedLanguage);
-                          setFormat(formatOptionsByLanguage[selectedLanguage][0]);
+                          setFormat(
+                            formatOptionsByLanguage[selectedLanguage][0],
+                          );
                         }}
                         className="block w-full rounded-lg border border-[#3c3c3c] bg-[#252526] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#007acc] focus:ring-2 focus:ring-[#007acc]/30"
                       >
@@ -398,8 +403,12 @@ export default function UploadFile() {
                     </div>
 
                     {/* Editor body */}
-                    <div className="flex max-h-[520px] min-h-[360px] overflow-hidden bg-[#1e1e1e]">
-                      <div className="select-none border-r border-[#2d2d2d] bg-[#1e1e1e] px-3 py-4 text-right font-mono text-sm leading-6 text-gray-500">
+                    {/* Editor body */}
+                    <div className="flex h-[55dvh] min-h-[320px] overflow-hidden bg-[#1e1e1e] sm:h-[520px]">
+                      <div
+                        ref={lineNumberRef}
+                        className="w-12 shrink-0 select-none overflow-hidden border-r border-[#2d2d2d] bg-[#1e1e1e] px-3 py-4 text-right font-mono text-sm leading-6 text-gray-500"
+                      >
                         {(code || "\n").split("\n").map((_, index) => (
                           <div key={index}>{index + 1}</div>
                         ))}
@@ -408,9 +417,15 @@ export default function UploadFile() {
                       <textarea
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
+                        onScroll={(e) => {
+                          if (lineNumberRef.current) {
+                            lineNumberRef.current.scrollTop =
+                              e.currentTarget.scrollTop;
+                          }
+                        }}
                         placeholder={`// Paste your ${language} code here...`}
                         className="
-                          block min-h-[360px] w-full resize-y overflow-auto whitespace-pre
+                          block h-full min-w-0 flex-1 resize-none overflow-auto whitespace-pre
                           bg-[#1e1e1e] px-4 py-4 font-mono text-sm leading-6 text-gray-100
                           caret-[#89dceb] placeholder:text-gray-600 focus:outline-none
 
