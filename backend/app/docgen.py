@@ -45,7 +45,9 @@ def get_source_for_fn(language: str, source: str, info: FunctionInfo) -> str:
         return ""
 
     if language in ("c++", "cpp", "c"):
-        if info.start:
+        if info.start and info.end:
+            return "\n".join(lines[info.start - 1 : info.end])
+        elif info.start:
             return lines[info.start - 1]
         return ""
 

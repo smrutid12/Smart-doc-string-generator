@@ -156,9 +156,9 @@ def extract_java_functions(source: str) -> List[FunctionInfo]:
     return res
 
 
-from clang.cindex import Index, CursorKind
-
-
+# -------------------------------
+# C / C++ regex fallback extractor
+# -------------------------------
 def find_c_like_block_end(source: str, start_line: int) -> int:
     """
     Find the ending line of a C/C++ function by counting braces.
@@ -182,111 +182,83 @@ def find_c_like_block_end(source: str, start_line: int) -> int:
                 brace_count -= 1
 
                 if found_opening_brace and brace_count == 0:
-                    return i + 1  # 1-based line number
+                    return i + 1
 
     return start_line
 
 
-def walk_clang_cursor(cursor):
+def extract_c_like_functions_regex(source: str) -> List[FunctionInfo]:
     """
-    Recursively walk clang AST nodes.
-    Needed because C++ class methods are nested inside class declarations.
+    Lightweight C/C++ function extractor.
+    Works without libclang.
+
+    Handles examples like:
+    int addNumbers(int a, int b) {
+    void greetUser(char name[]) {
+    string formatName(string firstName, string lastName) {
+    bool isUserActive(bool status) {
     """
-    for child in cursor.get_children():
-        yield child
-        yield from walk_clang_cursor(child)
+    res: List[FunctionInfo] = []
+    lines = source.splitlines()
+
+    function_pattern = re.compile(
+        r"""
+        ^\s*
+        (?!if\b|for\b|while\b|switch\b|catch\b|else\b)
+        (?:template\s*<[^>]+>\s*)?
+        (?:
+            [A-Za-z_][\w:<>\*&\s]*      # return type
+            \s+
+        )?
+        ([A-Za-z_]\w*)                  # function name
+        \s*
+        \([^;{}]*\)                     # parameters
+        \s*
+        (?:const\s*)?
+        \{                              # function body starts
+        """,
+        re.VERBOSE,
+    )
+
+    for index, line in enumerate(lines):
+        match = function_pattern.match(line)
+        if not match:
+            continue
+
+        name = match.group(1)
+
+        # Skip common control-like false positives
+        if name in {"if", "for", "while", "switch", "catch"}:
+            continue
+
+        start = index + 1
+        end = find_c_like_block_end(source, start)
+
+        res.append(FunctionInfo(
+            name=name,
+            start=start,
+            end=end,
+            node=None,
+            existing_docstring=None,
+        ))
+
+    res.sort(key=lambda x: x.start or 0)
+    return res
 
 
 # -------------------------------
 # C++ extractor
 # -------------------------------
 def extract_cpp_functions(source: str) -> List[FunctionInfo]:
-    res: List[FunctionInfo] = []
-
-    try:
-        index = Index.create()
-        tu = index.parse(
-            "temp.cpp",
-            args=["-std=c++17"],
-            unsaved_files=[("temp.cpp", source)],
-        )
-    except Exception as e:
-        logger.error(f"C++ parsing failed: {e}")
-        return res
-
-    for node in walk_clang_cursor(tu.cursor):
-        if node.kind in (
-            CursorKind.FUNCTION_DECL,
-            CursorKind.CXX_METHOD,
-            CursorKind.CONSTRUCTOR,
-            CursorKind.DESTRUCTOR,
-            CursorKind.FUNCTION_TEMPLATE,
-        ):
-            if not node.location or not node.location.file:
-                continue
-
-            # Ignore functions coming from system headers
-            if "temp.cpp" not in str(node.location.file):
-                continue
-
-            start = node.location.line
-            end = find_c_like_block_end(source, start) if start else None
-
-            name = node.spelling or node.displayname or "<anonymous>"
-
-            res.append(FunctionInfo(
-                name=name,
-                start=start,
-                end=end or start,
-                node=node,
-                existing_docstring=None,
-            ))
-
-    res.sort(key=lambda x: x.start or 0)
-    return res
+    return extract_c_like_functions_regex(source)
 
 
 # -------------------------------
 # C extractor
 # -------------------------------
 def extract_c_functions(source: str) -> List[FunctionInfo]:
-    res: List[FunctionInfo] = []
+    return extract_c_like_functions_regex(source)
 
-    try:
-        index = Index.create()
-        tu = index.parse(
-            "temp.c",
-            args=["-std=c11"],
-            unsaved_files=[("temp.c", source)],
-        )
-    except Exception as e:
-        logger.error(f"C parsing failed: {e}")
-        return res
-
-    for node in walk_clang_cursor(tu.cursor):
-        if node.kind == CursorKind.FUNCTION_DECL and node.is_definition():
-            if not node.location or not node.location.file:
-                continue
-
-            # Ignore functions coming from system headers
-            if "temp.c" not in str(node.location.file):
-                continue
-
-            start = node.location.line
-            end = find_c_like_block_end(source, start) if start else None
-
-            name = node.spelling or node.displayname or "<anonymous>"
-
-            res.append(FunctionInfo(
-                name=name,
-                start=start,
-                end=end or start,
-                node=node,
-                existing_docstring=None,
-            ))
-
-    res.sort(key=lambda x: x.start or 0)
-    return res
 
 # -------------------------------
 # Unified function
