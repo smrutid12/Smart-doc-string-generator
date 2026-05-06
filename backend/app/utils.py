@@ -156,43 +156,136 @@ def extract_java_functions(source: str) -> List[FunctionInfo]:
     return res
 
 
+from clang.cindex import Index, CursorKind
+
+
+def find_c_like_block_end(source: str, start_line: int) -> int:
+    """
+    Find the ending line of a C/C++ function by counting braces.
+    start_line is 1-based.
+    """
+    lines = source.splitlines()
+    brace_count = 0
+    found_opening_brace = False
+
+    for i in range(start_line - 1, len(lines)):
+        line = lines[i]
+
+        # Remove simple single-line comments
+        code_line = line.split("//")[0]
+
+        for char in code_line:
+            if char == "{":
+                brace_count += 1
+                found_opening_brace = True
+            elif char == "}":
+                brace_count -= 1
+
+                if found_opening_brace and brace_count == 0:
+                    return i + 1  # 1-based line number
+
+    return start_line
+
+
+def walk_clang_cursor(cursor):
+    """
+    Recursively walk clang AST nodes.
+    Needed because C++ class methods are nested inside class declarations.
+    """
+    for child in cursor.get_children():
+        yield child
+        yield from walk_clang_cursor(child)
+
+
 # -------------------------------
 # C++ extractor
 # -------------------------------
 def extract_cpp_functions(source: str) -> List[FunctionInfo]:
     res: List[FunctionInfo] = []
+
     try:
         index = Index.create()
-        tu = index.parse("temp.cpp", unsaved_files=[("temp.cpp", source)])
-    except Exception:
+        tu = index.parse(
+            "temp.cpp",
+            args=["-std=c++17"],
+            unsaved_files=[("temp.cpp", source)],
+        )
+    except Exception as e:
+        logger.error(f"C++ parsing failed: {e}")
         return res
 
-    for node in tu.cursor.get_children():
-        if node.kind.name == "FUNCTION_DECL":
+    for node in walk_clang_cursor(tu.cursor):
+        if node.kind in (
+            CursorKind.FUNCTION_DECL,
+            CursorKind.CXX_METHOD,
+            CursorKind.CONSTRUCTOR,
+            CursorKind.DESTRUCTOR,
+            CursorKind.FUNCTION_TEMPLATE,
+        ):
+            if not node.location or not node.location.file:
+                continue
+
+            # Ignore functions coming from system headers
+            if "temp.cpp" not in str(node.location.file):
+                continue
+
             start = node.location.line
-            res.append(FunctionInfo(node.spelling, start, None, node, None))
+            end = find_c_like_block_end(source, start) if start else None
+
+            name = node.spelling or node.displayname or "<anonymous>"
+
+            res.append(FunctionInfo(
+                name=name,
+                start=start,
+                end=end or start,
+                node=node,
+                existing_docstring=None,
+            ))
+
+    res.sort(key=lambda x: x.start or 0)
     return res
+
 
 # -------------------------------
 # C extractor
 # -------------------------------
 def extract_c_functions(source: str) -> List[FunctionInfo]:
     res: List[FunctionInfo] = []
+
     try:
         index = Index.create()
         tu = index.parse(
-            'temp.c',
-            args=['-std=c11'],
-            unsaved_files=[('temp.c', source)]
+            "temp.c",
+            args=["-std=c11"],
+            unsaved_files=[("temp.c", source)],
         )
-    except Exception:
+    except Exception as e:
+        logger.error(f"C parsing failed: {e}")
         return res
 
-    for node in tu.cursor.get_children():
-        if node.kind.name == 'FUNCTION_DECL' and node.is_definition():
-            start = node.location.line
-            res.append(FunctionInfo(node.spelling, start, None, node, None))
+    for node in walk_clang_cursor(tu.cursor):
+        if node.kind == CursorKind.FUNCTION_DECL and node.is_definition():
+            if not node.location or not node.location.file:
+                continue
 
+            # Ignore functions coming from system headers
+            if "temp.c" not in str(node.location.file):
+                continue
+
+            start = node.location.line
+            end = find_c_like_block_end(source, start) if start else None
+
+            name = node.spelling or node.displayname or "<anonymous>"
+
+            res.append(FunctionInfo(
+                name=name,
+                start=start,
+                end=end or start,
+                node=node,
+                existing_docstring=None,
+            ))
+
+    res.sort(key=lambda x: x.start or 0)
     return res
 
 # -------------------------------
