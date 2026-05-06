@@ -1,6 +1,19 @@
 "use client";
 
 import { useState, ChangeEvent, FormEvent } from "react";
+import {
+  Bot,
+  Braces,
+  Code2,
+  FileCode2,
+  FileUp,
+  Info,
+  Loader2,
+  Play,
+  Sparkles,
+  Terminal,
+  WandSparkles,
+} from "lucide-react";
 import { generateDocstring } from "../services/docstringService";
 import DownloadResponse from "./DownloadResult";
 
@@ -39,16 +52,23 @@ const formatOptionsByLanguage: Record<LanguageOption, DocStringFormat[]> = {
   "C++": ["Doxygen"],
 };
 
+const fileNameByLanguage: Record<LanguageOption, string> = {
+  Python: "main.py",
+  JavaScript: "main.js",
+  TypeScript: "main.ts",
+  Java: "Main.java",
+  C: "main.c",
+  "C++": "main.cpp",
+};
+
 function InfoTooltip({ text }: { text: string }) {
   return (
-    <div className="relative group inline-block ml-2">
-      {/* i button */}
-      <div className="w-5 h-5 flex items-center justify-center text-xs rounded-full bg-gray-700 text-white cursor-pointer">
-        i
+    <div className="relative group inline-flex">
+      <div className="flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-white/10 bg-[#2d2d30] text-gray-300 transition hover:bg-[#3a3a3d] hover:text-white">
+        <Info size={12} />
       </div>
 
-      {/* tooltip */}
-      <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 p-3 text-xs text-gray-200 bg-gray-800 border border-gray-700 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition pointer-events-none z-50">
+      <div className="pointer-events-none absolute left-1/2 top-7 z-50 w-72 -translate-x-1/2 rounded-xl border border-[#3c3c3c] bg-[#1e1e1e] p-3 text-xs leading-5 text-gray-300 opacity-0 shadow-2xl transition group-hover:opacity-100">
         {text}
       </div>
     </div>
@@ -80,10 +100,12 @@ export default function UploadFile() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
     if (inputMode === "file" && !file) {
       alert("Please upload a file!");
       return;
     }
+
     if (inputMode === "code" && !code.trim()) {
       alert("Please enter some code!");
       return;
@@ -95,6 +117,7 @@ export default function UploadFile() {
     formData.append("language", language);
     formData.append("format", format);
     formData.append("mode", inputMode);
+
     if (inputMode === "file" && file) formData.append("file", file);
     if (inputMode === "code") formData.append("code", code);
 
@@ -102,9 +125,14 @@ export default function UploadFile() {
       const result = await generateDocstring(formData);
       console.log("Backend Response:", result);
       setResultCode(result.modified_code);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      alert(err.message || "Something went wrong");
+
+      if (err instanceof Error) {
+        alert(err.message);
+      } else {
+        alert("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
@@ -135,270 +163,374 @@ export default function UploadFile() {
     URL.revokeObjectURL(url);
   };
 
+  const lineCount = code ? code.split("\n").length : 1;
+
   return (
-    <div className="max-w-3xl mx-auto mt-12 bg-gray-900 border border-gray-800 shadow-lg rounded-2xl p-8">
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <h2 className="text-2xl font-semibold text-white">
-          {resultCode
-            ? "Your Docstring is Ready!"
-            : "Smart Doc String Generator ✨"}
-        </h2>
+    <div className="min-h-screen overflow-hidden bg-[#0d1117] text-gray-100">
+      {/* Top VS Code title bar */}
+      <header className="flex h-12 items-center border-b border-[#2d2d2d] bg-[#181818] px-3">
+        <div className="flex items-center gap-2 text-sm font-semibold text-gray-200">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#007acc] text-white shadow-lg shadow-blue-500/20">
+            <Code2 size={16} />
+          </div>
+          Smart Doc Studio
+        </div>
 
-        <p className="text-gray-400">
-          {resultCode
-            ? "Download, copy or edit your generated code below."
-            : "Upload your file to add doc strings or paste code in the editor."}
-        </p>
-        {resultCode == "" && (
-          <>
-            {/* Language and Format */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-white after:content-['*'] after:ml-0.5 after:text-red-500">
-                  Language
-                </label>
-                <select
-                  value={language}
-                  onChange={(e) => {
-                    const selectedLanguage = e.target.value as LanguageOption;
-                    setLanguage(selectedLanguage);
+        <div className="mx-auto hidden w-[45%] items-center gap-2 rounded-lg border border-[#3c3c3c] bg-[#1f1f1f] px-3 py-1.5 text-sm text-gray-400 shadow-inner md:flex">
+          <Sparkles size={15} className="text-indigo-400" />
+          <span className="truncate">
+            Generate clean docstrings for {language} using {format}
+          </span>
+        </div>
 
-                    // reset format based on selected language
-                    setFormat(formatOptionsByLanguage[selectedLanguage][0]);
-                  }}
-                  className="mt-2 block w-full rounded-md bg-gray-800 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
-                >
-                  {languageOptions.map((lang) => (
-                    <option
-                      key={lang}
-                      value={lang}
-                      className="bg-gray-800 text-white"
-                    >
-                      {lang}
-                    </option>
-                  ))}
-                </select>
+        <div className="flex items-center gap-2 rounded-md bg-[#252526] px-3 py-1 text-xs text-gray-400">
+          <Bot size={14} className="text-green-400" />
+          AI Ready
+        </div>
+      </header>
+
+      <div className="flex min-h-[calc(100vh-48px)]">
+        {/* Activity bar */}
+        <aside className="hidden w-14 flex-col items-center border-r border-[#2d2d2d] bg-[#181818] py-4 md:flex">
+          <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-[#2d2d30] text-[#89dceb]">
+            <FileCode2 size={19} />
+          </div>
+          <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition hover:bg-[#2d2d30] hover:text-white">
+            <Terminal size={19} />
+          </div>
+          <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-xl text-gray-500 transition hover:bg-[#2d2d30] hover:text-white">
+            <Braces size={19} />
+          </div>
+          <div className="mt-auto flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-300">
+            <WandSparkles size={19} />
+          </div>
+        </aside>
+
+        {/* Explorer panel */}
+        <aside className="hidden w-64 border-r border-[#2d2d2d] bg-[#1e1e1e] p-4 lg:block">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-gray-500">
+            Explorer
+          </p>
+
+          <div className="space-y-2">
+            <div className="rounded-lg bg-[#252526] p-3">
+              <div className="mb-2 flex items-center gap-2 text-sm text-gray-200">
+                <FileCode2 size={15} className="text-blue-400" />
+                docstring-project
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-white after:content-['*'] after:ml-0.5 after:text-red-500">
-                  Docstring Format
-                </label>
-                <select
-                  value={format}
-                  onChange={(e) => setFormat(e.target.value as DocStringFormat)}
-                  className="mt-2 block w-full rounded-md bg-gray-800 text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none"
-                >
-                  {formatOptionsByLanguage[language].map((f) => (
-                    <option
-                      key={f}
-                      value={f}
-                      className="bg-gray-800 text-white"
-                    >
-                      {f}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Toggle Between Code & File */}
-            <div className="flex space-x-4">
-              <button
-                type="button"
-                onClick={() => handleModeChange("code")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                  inputMode === "code"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                }`}
-              >
-                Code Input
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeChange("file")}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition ${
-                  inputMode === "file"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                }`}
-              >
-                File Upload
-              </button>
-            </div>
-
-            {/* Conditional Rendering */}
-            {inputMode === "code" && (
-              <div>
-                <div className="flex items-center">
-                  <label
-                    className={`block text-sm font-medium text-white ${
-                      inputMode === "code"
-                        ? "after:content-['*'] after:ml-0.5 after:text-red-500"
-                        : ""
-                    }`}
-                  >
-                    Code Block
-                  </label>
-
-                  <InfoTooltip
-                    text={`Paste your ${language} function or class here.
-                      Make sure the code is valid.
-                      Example:
-                        function add(a, b) {
-                          return a + b;
-                        }`}
-                  />
+              <div className="ml-5 space-y-2 text-sm text-gray-400">
+                <div className="flex items-center gap-2 rounded-md bg-[#37373d] px-2 py-1 text-white">
+                  <Code2 size={14} className="text-yellow-300" />
+                  {fileNameByLanguage[language]}
                 </div>
-                <div className="mt-3 overflow-hidden rounded-xl border border-[#2d2d2d] bg-[#1e1e1e] shadow-2xl">
-                  {/* Editor top bar */}
-                  <div className="flex items-center justify-between border-b border-[#2d2d2d] bg-[#252526] px-4 py-2">
-                    <div className="text-xs font-medium text-gray-400">
-                      {language === "Python" && "main.py"}
-                      {language === "JavaScript" && "main.js"}
-                      {language === "TypeScript" && "main.ts"}
-                      {language === "Java" && "Main.java"}
-                      {language === "C" && "main.c"}
-                      {language === "C++" && "main.cpp"}
-                    </div>
 
-                    <div className="text-xs text-gray-500">Code Editor</div>
+                <div className="flex items-center gap-2 px-2 py-1">
+                  <Sparkles size={14} className="text-purple-300" />
+                  docstring_output
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-[#333] bg-[#181818] p-3">
+              <p className="text-xs font-medium uppercase tracking-widest text-gray-500">
+                Current Setup
+              </p>
+
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Language</span>
+                  <span className="text-[#89dceb]">{language}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Format</span>
+                  <span className="text-[#c792ea]">{format}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Mode</span>
+                  <span className="text-[#c3e88d]">
+                    {inputMode === "code" ? "Code" : "File"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main editor area */}
+        <main className="flex-1 overflow-y-auto bg-[#1e1e1e]">
+          <form onSubmit={handleSubmit} className="mx-auto max-w-6xl p-4 md:p-6">
+            {/* Fun hero / command panel */}
+            <section className="mb-5 overflow-hidden rounded-2xl border border-[#2d2d2d] bg-[#181818] shadow-2xl">
+              <div className="border-b border-[#2d2d2d] bg-[#252526] px-4 py-2 text-xs text-gray-400">
+                command-center.tsx
+              </div>
+
+              <div className="relative p-5 md:p-7">
+                <div className="absolute right-6 top-6 hidden rounded-full bg-indigo-500/10 px-4 py-2 text-xs text-indigo-300 ring-1 ring-indigo-500/20 md:block">
+                  ✨ docs without the drama
+                </div>
+
+                <div className="max-w-2xl">
+                  <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#3c3c3c] bg-[#252526] px-3 py-1 text-xs text-gray-400">
+                    <WandSparkles size={14} className="text-indigo-300" />
+                    AI Docstring Generator
                   </div>
 
-                  {/* Editor body */}
-                  <div className="flex max-h-[420px] min-h-[260px] overflow-hidden bg-[#1e1e1e]">
-                    {/* Line numbers */}
-                    <div className="select-none border-r border-[#2d2d2d] bg-[#1e1e1e] px-3 py-3 text-right font-mono text-sm leading-6 text-gray-500">
-                      {(code || "\n").split("\n").map((_, index) => (
-                        <div key={index}>{index + 1}</div>
-                      ))}
+                  <h1 className="text-2xl font-bold tracking-tight text-white md:text-4xl">
+                    {resultCode
+                      ? "Your docstrings compiled successfully."
+                      : "Paste code. Pick a style. Generate clean docs."}
+                  </h1>
+
+                  <p className="mt-3 max-w-xl text-sm leading-6 text-gray-400 md:text-base">
+                    {resultCode
+                      ? "Review your generated output, edit it if needed, then copy or download the final file."
+                      : "A VS Code-inspired workspace for generating Google, NumPy, JSDoc, TSDoc, JavaDoc, and Doxygen comments."}
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {resultCode === "" && (
+              <>
+                {/* Settings in header-like bar */}
+                <section className="mb-5 rounded-2xl border border-[#2d2d2d] bg-[#181818] p-4 shadow-xl">
+                  <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+                    <div>
+                      <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-300">
+                        Language
+                        <InfoTooltip text="Choose the programming language that matches your pasted code or uploaded file." />
+                      </label>
+
+                      <select
+                        value={language}
+                        onChange={(e) => {
+                          const selectedLanguage =
+                            e.target.value as LanguageOption;
+                          setLanguage(selectedLanguage);
+                          setFormat(formatOptionsByLanguage[selectedLanguage][0]);
+                        }}
+                        className="block w-full rounded-lg border border-[#3c3c3c] bg-[#252526] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#007acc] focus:ring-2 focus:ring-[#007acc]/30"
+                      >
+                        {languageOptions.map((lang) => (
+                          <option
+                            key={lang}
+                            value={lang}
+                            className="bg-[#252526] text-white"
+                          >
+                            {lang}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
-                    {/* Code textarea */}
-                    <textarea
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      placeholder={`Paste your ${language} code here...`}
-                      className="
-        block min-h-[260px] w-full resize-y overflow-auto whitespace-pre
-        bg-[#1e1e1e] px-4 py-3 font-mono text-sm leading-6 text-gray-100
-        caret-indigo-400 placeholder:text-gray-600 focus:outline-none
+                    <div>
+                      <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-300">
+                        Docstring Format
+                        <InfoTooltip text="Formats are filtered based on the selected language, so only valid options appear." />
+                      </label>
 
-        [&::-webkit-scrollbar]:h-2
-        [&::-webkit-scrollbar]:w-2
-        [&::-webkit-scrollbar-track]:bg-[#1e1e1e]
-        [&::-webkit-scrollbar-thumb]:rounded-full
-        [&::-webkit-scrollbar-thumb]:bg-[#4b5563]
-        [&::-webkit-scrollbar-thumb:hover]:bg-[#6b7280]
-      "
-                      rows={10}
-                      spellCheck={false}
-                      onKeyDown={(e) => {
-                        if (e.key === "Tab") {
-                          e.preventDefault();
-
-                          const target = e.target as HTMLTextAreaElement;
-                          const start = target.selectionStart;
-                          const end = target.selectionEnd;
-
-                          const newValue =
-                            target.value.substring(0, start) +
-                            "  " +
-                            target.value.substring(end);
-
-                          setCode(newValue);
-
-                          requestAnimationFrame(() => {
-                            target.selectionStart = target.selectionEnd =
-                              start + 2;
-                          });
+                      <select
+                        value={format}
+                        onChange={(e) =>
+                          setFormat(e.target.value as DocStringFormat)
                         }
-                      }}
-                    />
-                  </div>
+                        className="block w-full rounded-lg border border-[#3c3c3c] bg-[#252526] px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#007acc] focus:ring-2 focus:ring-[#007acc]/30"
+                      >
+                        {formatOptionsByLanguage[language].map((f) => (
+                          <option
+                            key={f}
+                            value={f}
+                            className="bg-[#252526] text-white"
+                          >
+                            {f}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                  {/* Bottom status bar */}
-                  <div className="flex items-center justify-between border-t border-[#2d2d2d] bg-[#0e639c] px-4 py-1 text-xs text-white">
-                    <span>{language}</span>
-                    <span>Lines: {code ? code.split("\n").length : 1}</span>
-                  </div>
-                </div>
-              </div>
-            )}
+                    <div className="flex rounded-lg border border-[#3c3c3c] bg-[#252526] p-1">
+                      <button
+                        type="button"
+                        onClick={() => handleModeChange("code")}
+                        className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+                          inputMode === "code"
+                            ? "bg-[#007acc] text-white shadow-lg shadow-blue-500/20"
+                            : "text-gray-400 hover:bg-[#2d2d30] hover:text-white"
+                        }`}
+                      >
+                        <Code2 size={16} />
+                        Code
+                      </button>
 
-            {inputMode === "file" && (
-              <div>
-                <div className="flex items-center">
-                  <label
-                    className={`block text-sm font-medium text-white ${
-                      inputMode === "file"
-                        ? "after:content-['*'] after:ml-0.5 after:text-red-500"
-                        : ""
+                      <button
+                        type="button"
+                        onClick={() => handleModeChange("file")}
+                        className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition ${
+                          inputMode === "file"
+                            ? "bg-[#007acc] text-white shadow-lg shadow-blue-500/20"
+                            : "text-gray-400 hover:bg-[#2d2d30] hover:text-white"
+                        }`}
+                      >
+                        <FileUp size={16} />
+                        File
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                {inputMode === "code" && (
+                  <section className="overflow-hidden rounded-2xl border border-[#2d2d2d] bg-[#1e1e1e] shadow-2xl">
+                    {/* Editor tab bar */}
+                    <div className="flex items-center justify-between border-b border-[#2d2d2d] bg-[#252526]">
+                      <div className="flex">
+                        <div className="flex items-center gap-2 border-r border-[#2d2d2d] bg-[#1e1e1e] px-4 py-2 text-sm text-white">
+                          <FileCode2 size={15} className="text-[#89dceb]" />
+                          {fileNameByLanguage[language]}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 px-4 text-xs text-gray-500">
+                        <Sparkles size={14} className="text-indigo-300" />
+                        Code Editor
+                      </div>
+                    </div>
+
+                    {/* Editor body */}
+                    <div className="flex max-h-[520px] min-h-[360px] overflow-hidden bg-[#1e1e1e]">
+                      <div className="select-none border-r border-[#2d2d2d] bg-[#1e1e1e] px-3 py-4 text-right font-mono text-sm leading-6 text-gray-500">
+                        {(code || "\n").split("\n").map((_, index) => (
+                          <div key={index}>{index + 1}</div>
+                        ))}
+                      </div>
+
+                      <textarea
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        placeholder={`// Paste your ${language} code here...`}
+                        className="
+                          block min-h-[360px] w-full resize-y overflow-auto whitespace-pre
+                          bg-[#1e1e1e] px-4 py-4 font-mono text-sm leading-6 text-gray-100
+                          caret-[#89dceb] placeholder:text-gray-600 focus:outline-none
+
+                          [&::-webkit-scrollbar]:h-2
+                          [&::-webkit-scrollbar]:w-2
+                          [&::-webkit-scrollbar-track]:bg-[#1e1e1e]
+                          [&::-webkit-scrollbar-thumb]:rounded-full
+                          [&::-webkit-scrollbar-thumb]:bg-[#4b5563]
+                          [&::-webkit-scrollbar-thumb:hover]:bg-[#6b7280]
+                        "
+                        rows={14}
+                        spellCheck={false}
+                        onKeyDown={(e) => {
+                          if (e.key === "Tab") {
+                            e.preventDefault();
+
+                            const target = e.target as HTMLTextAreaElement;
+                            const start = target.selectionStart;
+                            const end = target.selectionEnd;
+
+                            const newValue =
+                              target.value.substring(0, start) +
+                              "  " +
+                              target.value.substring(end);
+
+                            setCode(newValue);
+
+                            requestAnimationFrame(() => {
+                              target.selectionStart = target.selectionEnd =
+                                start + 2;
+                            });
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between border-t border-[#2d2d2d] bg-[#0e639c] px-4 py-1.5 text-xs text-white">
+                      <span>{language}</span>
+                      <span>
+                        {fileNameByLanguage[language]} · Lines: {lineCount}
+                      </span>
+                    </div>
+                  </section>
+                )}
+
+                {inputMode === "file" && (
+                  <section className="rounded-2xl border border-[#2d2d2d] bg-[#181818] p-6 shadow-2xl">
+                    <div className="mb-4 flex items-center gap-2 text-sm font-medium text-gray-300">
+                      File Upload
+                      <InfoTooltip
+                        text={`Upload a file containing your ${language} code.
+Supported formats: .py, .js, .ts, .java, .c, .cpp
+Max size: 10MB.
+Make sure the file contains valid functions or classes.`}
+                      />
+                    </div>
+
+                    <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-dashed border-[#3c3c3c] bg-[#1e1e1e] p-8 transition hover:border-[#007acc] hover:bg-[#202020]">
+                      <div className="text-center">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#252526] text-[#89dceb]">
+                          <FileUp size={28} />
+                        </div>
+
+                        <label
+                          htmlFor="file-upload"
+                          className="cursor-pointer rounded-lg bg-[#007acc] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0e639c]"
+                        >
+                          {file ? file.name : "Choose code file"}
+                          <input
+                            id="file-upload"
+                            type="file"
+                            className="sr-only"
+                            onChange={handleFileChange}
+                          />
+                        </label>
+
+                        <p className="mt-3 text-sm text-gray-500">
+                          Drop a file here mentally, click practically.
+                        </p>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                <div className="mt-5 flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus:ring-2 focus:ring-[#007acc]/40 ${
+                      loading
+                        ? "cursor-not-allowed bg-[#0e639c]/60"
+                        : "bg-[#007acc] shadow-lg shadow-blue-500/20 hover:bg-[#0e639c]"
                     }`}
                   >
-                    File Upload
-                  </label>
-
-                  <InfoTooltip
-                    text={`Upload a file containing your ${language} code.
-                    Supported formats:.py, .js, .ts, .java, .c, .cpp
-                    Max size: 10MB
-                    Make sure the file contains valid functions or classes.`}
-                  />
-                </div>
-                <div className="mt-2 flex justify-center rounded-lg border border-dashed border-white/25 px-6 py-10">
-                  <div className="text-center">
-                    <label
-                      htmlFor="file-upload"
-                      className="relative cursor-pointer rounded-md bg-transparent font-semibold text-indigo-400 hover:text-indigo-300"
-                    >
-                      <span>{file ? file.name : "Upload a file"}</span>
-                      <input
-                        id="file-upload"
-                        type="file"
-                        className="sr-only"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                    {!file && (
-                      <p className="text-gray-400 text-sm mt-2">
-                        or drag and drop (up to 10MB)
-                      </p>
+                    {loading ? (
+                      <>
+                        <Loader2 size={17} className="animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Play size={17} />
+                        Generate Docstring
+                      </>
                     )}
-                  </div>
+                  </button>
                 </div>
-              </div>
+              </>
             )}
 
-            {/* Submit */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={loading}
-                className={`rounded-md px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2 ${
-                  loading
-                    ? "bg-indigo-400 cursor-not-allowed"
-                    : "bg-indigo-500 hover:bg-indigo-600"
-                }`}
-              >
-                {loading && (
-                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                )}
-                {loading ? "Generating..." : "Generate Docstring"}
-              </button>
-            </div>
-          </>
-        )}
-        {resultCode && (
-          <DownloadResponse
-            resultCode={resultCode}
-            setResultCode={setResultCode}
-            handleDownload={handleDownload}
-          />
-        )}
-      </form>
-      {/* Output Section */}
+            {resultCode && (
+              <DownloadResponse
+                resultCode={resultCode}
+                setResultCode={setResultCode}
+                handleDownload={handleDownload}
+              />
+            )}
+          </form>
+        </main>
+      </div>
     </div>
   );
 }
