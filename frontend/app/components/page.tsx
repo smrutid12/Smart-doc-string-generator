@@ -13,6 +13,8 @@ import {
   Sparkles,
   Terminal,
   WandSparkles,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import { generateDocstring } from "../services/docstringService";
 import DownloadResponse from "./DownloadResult";
@@ -61,6 +63,12 @@ const fileNameByLanguage: Record<LanguageOption, string> = {
   "C++": "main.cpp",
 };
 
+type ToastState = {
+  title: string;
+  message: string;
+  variant?: "error" | "warning" | "success";
+} | null;
+
 function InfoTooltip({ text }: { text: string }) {
   return (
     <div className="relative group inline-flex">
@@ -75,6 +83,180 @@ function InfoTooltip({ text }: { text: string }) {
   );
 }
 
+function detectCodeLanguage(source: string): LanguageOption | null {
+  const code = source.trim();
+
+  const patterns: Array<{
+    language: LanguageOption;
+    score: number;
+    tests: RegExp[];
+  }> = [
+    {
+      language: "Python",
+      score: 0,
+      tests: [
+        /\bdef\s+\w+\s*\(/,
+        /\bclass\s+\w+\s*[:(]/,
+        /^\s*from\s+\w+\s+import\s+/m,
+        /^\s*import\s+\w+/m,
+        /\bprint\s*\(/,
+      ],
+    },
+    {
+      language: "TypeScript",
+      score: 0,
+      tests: [
+        /\binterface\s+\w+/,
+        /\btype\s+\w+\s*=/,
+        /\bfunction\s+\w+\s*\([^)]*:\s*\w+/,
+        /\bconst\s+\w+\s*:\s*\w+/,
+        /\)\s*:\s*(string|number|boolean|void|Promise|any|unknown)\b/,
+      ],
+    },
+    {
+      language: "Java",
+      score: 0,
+      tests: [
+        /\bpublic\s+class\s+\w+/,
+        /\bclass\s+\w+/,
+        /\bpublic\s+static\s+void\s+main\s*\(/,
+        /\bSystem\.out\.println\s*\(/,
+        /\b(public|private|protected)\s+(static\s+)?[\w<>\[\]]+\s+\w+\s*\(/,
+      ],
+    },
+    {
+      language: "C++",
+      score: 0,
+      tests: [
+        /#include\s*<iostream>/,
+        /\busing\s+namespace\s+std\s*;/,
+        /\bstd::/,
+        /\bcout\s*<</,
+        /\bcin\s*>>/,
+        /\bclass\s+\w+/,
+      ],
+    },
+    {
+      language: "C",
+      score: 0,
+      tests: [
+        /#include\s*<stdio\.h>/,
+        /\bprintf\s*\(/,
+        /\bscanf\s*\(/,
+        /\bint\s+main\s*\(/,
+        /\bvoid\s+\w+\s*\([^)]*\)\s*\{/,
+      ],
+    },
+    {
+      language: "JavaScript",
+      score: 0,
+      tests: [
+        /\bfunction\s+\w+\s*\(/,
+        /\bconst\s+\w+\s*=/,
+        /\blet\s+\w+\s*=/,
+        /\bvar\s+\w+\s*=/,
+        /=>/,
+        /\bconsole\.log\s*\(/,
+      ],
+    },
+  ];
+
+  const scored = patterns
+    .map((item) => ({
+      language: item.language,
+      score: item.tests.reduce(
+        (total, regex) => total + (regex.test(code) ? 1 : 0),
+        0,
+      ),
+    }))
+    .sort((a, b) => b.score - a.score);
+
+  if (scored[0].score === 0) return null;
+
+  return scored[0].language;
+}
+
+function doesLanguageMatchCode(language: LanguageOption, source: string) {
+  const detected = detectCodeLanguage(source);
+
+  if (!detected) {
+    return {
+      matches: false,
+      detected: null,
+      message:
+        "I could not confidently detect the language. Please check that the code is valid and includes at least one function or class.",
+    };
+  }
+
+  if (language === detected) {
+    return {
+      matches: true,
+      detected,
+      message: "",
+    };
+  }
+
+  // Allow TypeScript selected for JS-like code, because valid TS can look exactly like JS.
+  if (language === "TypeScript" && detected === "JavaScript") {
+    return {
+      matches: true,
+      detected,
+      message: "",
+    };
+  }
+
+  return {
+    matches: false,
+    detected,
+    message: `Selected language is ${language}, but this looks like ${detected}. Please change the language or paste matching code.`,
+  };
+}
+
+function VsCodeToast({
+  toast,
+  onClose,
+}: {
+  toast: ToastState;
+  onClose: () => void;
+}) {
+  if (!toast) return null;
+
+  const accent =
+    toast.variant === "success"
+      ? "border-green-500/50 text-green-300"
+      : toast.variant === "warning"
+        ? "border-yellow-500/50 text-yellow-300"
+        : "border-red-500/50 text-red-300";
+
+  return (
+    <div className="fixed bottom-4 right-4 z-[9999] w-[calc(100vw-2rem)] max-w-sm overflow-hidden rounded-xl border border-[#3c3c3c] bg-[#1e1e1e] shadow-2xl">
+      <div className={`flex items-start gap-3 border-l-4 ${accent} p-4`}>
+        <div className="mt-0.5 shrink-0">
+          <AlertTriangle size={18} />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-white">{toast.title}</div>
+          <div className="mt-1 text-sm leading-5 text-gray-400">
+            {toast.message}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md p-1 text-gray-500 transition hover:bg-[#2d2d30] hover:text-white"
+          aria-label="Close notification"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="h-1 bg-[#0e639c]" />
+    </div>
+  );
+}
+
 export default function UploadFile() {
   const [language, setLanguage] = useState<LanguageOption>("Python");
   const [code, setCode] = useState("");
@@ -85,6 +267,8 @@ export default function UploadFile() {
   const [inputMode, setInputMode] = useState<"code" | "file">("code");
   const [loading, setLoading] = useState(false);
   const [resultCode, setResultCode] = useState<string>("");
+  const [toast, setToast] = useState<ToastState>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lineNumberRef = useRef<HTMLDivElement | null>(null);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -99,17 +283,50 @@ export default function UploadFile() {
     if (mode === "file") setCode("");
   };
 
+  const showToast = (
+    title: string,
+    message: string,
+    variant: "error" | "warning" | "success" = "error",
+  ) => {
+    setToast({ title, message, variant });
+
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+
+    toastTimerRef.current = setTimeout(() => {
+      setToast(null);
+    }, 4500);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     if (inputMode === "file" && !file) {
-      alert("Please upload a file!");
+      showToast(
+        "No file selected",
+        "Please upload a code file before generating docstrings.",
+        "warning",
+      );
       return;
     }
 
     if (inputMode === "code" && !code.trim()) {
-      alert("Please enter some code!");
+      showToast(
+        "Code editor is empty",
+        "Please paste code into the editor before generating docstrings.",
+        "warning",
+      );
       return;
+    }
+
+    if (inputMode === "code") {
+      const validation = doesLanguageMatchCode(language, code);
+
+      if (!validation.matches) {
+        showToast("Language mismatch", validation.message, "error");
+        return;
+      }
     }
 
     setLoading(true);
@@ -130,9 +347,13 @@ export default function UploadFile() {
       console.error(err);
 
       if (err instanceof Error) {
-        alert(err.message);
+        showToast("Generation failed", err.message, "error");
       } else {
-        alert("Something went wrong");
+        showToast(
+          "Generation failed",
+          "Something went wrong while generating docstrings.",
+          "error",
+        );
       }
     } finally {
       setLoading(false);
@@ -542,6 +763,7 @@ Make sure the file contains valid functions or classes.`}
           </form>
         </main>
       </div>
+      <VsCodeToast toast={toast} onClose={() => setToast(null)} />
     </div>
   );
 }
