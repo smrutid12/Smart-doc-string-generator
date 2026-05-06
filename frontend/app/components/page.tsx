@@ -252,14 +252,8 @@ export default function UploadFile() {
                   />
                 </div>
                 <div className="mt-3 overflow-hidden rounded-xl border border-[#2d2d2d] bg-[#1e1e1e] shadow-2xl">
-                  {/* VS Code top bar */}
+                  {/* Editor top bar */}
                   <div className="flex items-center justify-between border-b border-[#2d2d2d] bg-[#252526] px-4 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-red-500"></span>
-                      <span className="h-3 w-3 rounded-full bg-yellow-400"></span>
-                      <span className="h-3 w-3 rounded-full bg-green-500"></span>
-                    </div>
-
                     <div className="text-xs font-medium text-gray-400">
                       {language === "Python" && "main.py"}
                       {language === "JavaScript" && "main.js"}
@@ -269,7 +263,7 @@ export default function UploadFile() {
                       {language === "C++" && "main.cpp"}
                     </div>
 
-                    <div className="text-xs text-gray-500">VS Code</div>
+                    <div className="text-xs text-gray-500">Code Editor</div>
                   </div>
 
                   {/* Editor body */}
@@ -286,7 +280,18 @@ export default function UploadFile() {
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
                       placeholder={`Paste your ${language} code here...`}
-                      className="block min-h-[260px] w-full resize-y overflow-auto whitespace-pre bg-[#1e1e1e] px-4 py-3 font-mono text-sm leading-6 text-gray-100 caret-indigo-400 placeholder:text-gray-600 focus:outline-none"
+                      className="
+        block min-h-[260px] w-full resize-y overflow-auto whitespace-pre
+        bg-[#1e1e1e] px-4 py-3 font-mono text-sm leading-6 text-gray-100
+        caret-indigo-400 placeholder:text-gray-600 focus:outline-none
+
+        [&::-webkit-scrollbar]:h-2
+        [&::-webkit-scrollbar]:w-2
+        [&::-webkit-scrollbar-track]:bg-[#1e1e1e]
+        [&::-webkit-scrollbar-thumb]:rounded-full
+        [&::-webkit-scrollbar-thumb]:bg-[#4b5563]
+        [&::-webkit-scrollbar-thumb:hover]:bg-[#6b7280]
+      "
                       rows={10}
                       spellCheck={false}
                       onKeyDown={(e) => {
@@ -314,7 +319,7 @@ export default function UploadFile() {
                   </div>
 
                   {/* Bottom status bar */}
-                  <div className="flex items-center justify-between border-t border-[#2d2d2d] bg-[#007acc] px-4 py-1 text-xs text-white">
+                  <div className="flex items-center justify-between border-t border-[#2d2d2d] bg-[#0e639c] px-4 py-1 text-xs text-white">
                     <span>{language}</span>
                     <span>Lines: {code ? code.split("\n").length : 1}</span>
                   </div>
