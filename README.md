@@ -6,7 +6,7 @@ docstrings using the **Grok (LLaMA-based)** model.
 
 <p align="center">
   <img
-    src="https://github.com/user-attachments/assets/36350cb9-d150-4d36-93be-7f27e87cdd90"
+    src="https://github.com/user-attachments/assets/c7bddf71-ad1c-46f7-b2ec-3ee9ccb5d7dd"
     alt="smart-doc-string-generator-landing"
     width="482"
     height="627"
